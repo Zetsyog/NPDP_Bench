@@ -1,3 +1,5 @@
+//codes corrected by Piotr Blaszynski
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -119,76 +121,121 @@ printf("\n");
     }
     if(kind==2) // pluto
     {
-        /* Start of CLooG code */
-/* Start of CLooG code */
-if ((N >= 3) && (N >= l+1)) {
-  for (t1=max(3,l+1);t1<=N;t1++) {
-    lbp=0;
-    ubp=min(floord(t1-2,16),floord(t1-l,16));
-#pragma omp parallel for private(lbv,ubv,t3,t4,t5)
-    for (t2=lbp;t2<=ubp;t2++) {
-      for (t3=t2;t3<=floord(t1-l,16);t3++) {
-        for (t4=max(1,16*t2);t4<=min(min(t1-2,t1-l),16*t2+15);t4++) {
-          for (t5=max(16*t3,t4);t5<=min(t1-l,16*t3+15);t5++) {
-            c[t4][t1] += c[t4][t1-1] + paired(t5,t1) ? c[t4][t5-1] + c[t5+1][t1-1] : 0;;
+      // pluto
+        if (N >= 3)
+    {
+      for (t1 = 3; t1 <= N; t1++)
+      {
+        lbp = 0;
+        ubp = floord(t1 - 2, 32);
+#pragma omp parallel for private(lbv, ubv, t3, t4, t5)
+        for (t2 = lbp; t2 <= ubp; t2++)
+        {
+          for (t3 = t2; t3 <= floord(t1, 32); t3++)
+          {
+            if ((t1 >= 32 * t3 + 1) && (t1 <= 32 * t3 + 31))
+            {
+              for (t4 = max(1, 32 * t2); t4 <= min(t1 - 2, 32 * t2 + 31); t4++)
+              {
+                for (t5 = max(32 * t3, t4); t5 <= t1 - 1; t5++)
+                {
+                  c[t4][t1] += pared(t5, t1) ? c[t4][t5 - 1] + c[t5 + 1][t1 - 1] : 0;
+                  ;
+                }
+                c[t4][t1] = c[t4][t1] + c[t4][t1 - 1];
+                ;
+              }
+            }
+            if (t1 >= 32 * t3 + 32)
+            {
+              for (t4 = max(1, 32 * t2); t4 <= min(t1 - 2, 32 * t2 + 31); t4++)
+              {
+                for (t5 = max(32 * t3, t4); t5 <= 32 * t3 + 31; t5++)
+                {
+                  c[t4][t1] += pared(t5, t1) ? c[t4][t5 - 1] + c[t5 + 1][t1 - 1] : 0;
+                  ;
+                }
+              }
+            }
+            if (t1 == 32 * t3)
+            {
+              for (t4 = max(1, 32 * t2); t4 <= min(t1 - 2, 32 * t2 + 31); t4++)
+              {
+                if (t1 % 32 == 0)
+                {
+                  c[t4][t1] = c[t4][t1] + c[t4][t1 - 1];
+                  ;
+                }
+              }
+            }
           }
         }
       }
     }
-  }
-}
-/* End of CLooG code */
-
-
-        /* End of CLooG code */
+    // end pluto
     }
     if(kind==3) // traco
     {
-
+       
+ for (c1 = 0; c1 < N + floord(N - 3, 128) - 2; c1 += 1)
+#pragma omp parallel for
+      for (c3 = max(0, -N + c1 + 3); c3 <= c1 / 129; c3 += 1)
+        for (c4 = 0; c4 <= 1; c4 += 1)
+        {
+          if (c4 == 1)
+          {
+            for (c9 = N - c1 + 129 * c3; c9 <= min(N, N - c1 + 129 * c3 + 127); c9 += 1)
+              for (c10 = max(0, -c1 + 64 * c3 - c9 + (N + c1 + c3 + c9 + 1) / 2 + 1); c10 <= 1; c10 += 1)
+              {
+                if (c10 == 1)
+                {
+                  c[(N - c1 + c3 - 2)][c9] = c[(N - c1 + c3 - 2)][c9] + c[(N - c1 + c3 - 2)][c9 - 1];
+                }
+                else
+                {
+                  for (c11 = N - c1 + 129 * c3 + 1; c11 < c9; c11 += 1)
+                    c[(N - c1 + c3 - 2)][c9] += pared(c11, c9) ? c[(N - c1 + c3 - 2)][c11 - 1] + c[c11 + 1][c9 - 1] : 0;
+                }
+              }
+          }
+          else
+          {
+            for (c5 = 0; c5 <= 8 * c3; c5 += 1)
+              for (c9 = N - c1 + 129 * c3; c9 <= min(N, N - c1 + 129 * c3 + 127); c9 += 1)
+                for (c11 = N - c1 + c3 + 16 * c5 - 2; c11 <= min(min(N - c1 + 129 * c3, N - c1 + c3 + 16 * c5 + 13), c9 - 1); c11 += 1)
+                  c[(N - c1 + c3 - 2)][c9] += paired(c11, c9) + c[(N - c1 + c3 - 2)][c11 - 1] + c[c11 + 1][c9 - 1] + 0;
+          }
+        }
+       // end
+    }
+   
+   if(kind==5) // dapt
+   {
+       for (int w0 = floord(-N - 14, 32); w0 < floord(N, 32); w0 += 1)
+    {
+#pragma omp parallel for
+      for (int h0 = max(-((N + 13) / 16), w0 - (N + 32) / 32 + 1); h0 <= min(-1, 2 * w0 + 2); h0 += 1)
+      {
+        for (int i0 = max(max(-N + 2, -32 * w0 + 32 * h0 - 29), 16 * h0); i0 <= 16 * h0 + 15; i0 += 1)
+        {
+          for (int i1 = max(32 * w0 - 32 * h0, -i0 + 2); i1 <= min(N, 32 * w0 - 32 * h0 + 31); i1 += 1)
+          {
+            {
+              for (int i3 = -i0; i3 < i1; i3 += 1)
+              {
+                c[-i0][i1] += (paired((i3), (i1)) ? (c[-i0][i3 - 1] + c[i3 + 1][i1 - 1]) : 0);
+              }
+              c[-i0][i1] = (c[-i0][i1] + c[-i0][i1 - 1]);
+            }
+          }
+        }
+      }
+    }
+      
+      
+   }
  
 
-for( c1 = max(0, floord(l - 2, 8) - 1); c1 <= floord(N - 3, 8); c1 += 1)
-   #pragma omp parallel for shared(c1) private(c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) schedule(dynamic, 1)
-  for( c3 = max(max(0, floord(l - 2, 16)), c1 - (N + 13) / 16 + 1); c3 <= c1 / 2; c3 += 1)
-    for( c5 = 0; c5 <= min(c3 + floord(-l + 1, 16) + 1, floord(-l + N - 1, 16)); c5 += 1)
-      for( c7 = max(-N + 16 * c1 - 16 * c3 + 2, l - N + 16 * c5); c7 <= min(-1, -N + 16 * c1 - 16 * c3 + 17); c7 += 1) {
-        for( c9 = max(l + 16 * c5 - c7, 16 * c3 - c7 + 2); c9 <= min(min(N, l + 16 * c5 - c7 + 16), 16 * c3 - c7 + 17); c9 += 1) {
-          if (c7 + c9 >= 16 * c3 + 3 && c7 + c9 >= l + 16 * c5 + 1)
-            for( c11 = -c7; c11 < 16 * c5 - c7; c11 += 1)
-              c[(-c7)][c9] += c[(-c7)][c9-1] + paired(c11,c9) ? c[(-c7)][c11-1] + c[c11+1][c9-1] : 0;
-          for( c11 = 16 * c5 - c7; c11 <= min(16 * c5 - c7 + 15, -l + c9); c11 += 1)
-            c[(-c7)][c9] += c[(-c7)][c9-1] + paired(c11,c9) ? c[(-c7)][c11-1] + c[c11+1][c9-1] : 0;
-        }
-        if (16 * c3 >= l + 16 * c5 + 15)
-          for( c11 = 16 * c5 - c7; c11 <= 16 * c5 - c7 + 15; c11 += 1)
-            c[(-c7)][(16*c3-c7+2)] += c[(-c7)][(16*c3-c7+2)-1] + paired(c11,(16*c3-c7+2)) ? c[(-c7)][c11-1] + c[c11+1][(16*c3-c7+2)-1] : 0;
-      }
-
-
-
-
-    }
-
-    if(kind==4) // traco
-    {
-       for( c0 = max(0, floord(l - 2, 8) - 1); c0 <= floord(N - 3, 8); c0 += 1)
-  #pragma omp parallel for  shared(c0) private(c1, c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) schedule(dynamic, 1)
-  for( c1 = (c0 + 1) / 2; c1 <= min(min(c0, c0 + (-l + 1/16) + 1), (N - 3) / 16); c1 += 1)
-    for( c3 = max(l, 16 * c0 - 16 * c1 + 2); c3 <= min(N - 1, 16 * c0 - 16 * c1 + 17); c3 += 1)
-      for( c4 = max(0, -c1 + (N - 1) / 16 - 1); c4 <= min((-l + N) / 16, -c1 + (-l + N + c3 - 2) / 16); c4 += 1)
-        for( c6 = max(max(-N + 16 * c1 + 2, -N + c3), -16 * c4 - 15); c6 <= min(min(-1, -N + 16 * c1 + 17), -l + c3 - 16 * c4); c6 += 1)
-          for( c10 = max(16 * c4, -c6); c10 <= min(16 * c4 + 15, -l + c3 - c6); c10 += 1)
-            c[(-c6)][(c3-c6)] += c[(-c6)][(c3-c6)-1] + paired(c10,(c3-c6)) ? c[(-c6)][c10-1] + c[c10+1][(c3-c6)-1] : 0;
-       
-   if(1==0)    
-    for( c0 = max(0, l + floord(l - 2, 16) - 2); c0 < N + floord(N - 3, 16) - 2; c0 += 1)
-  #pragma omp parallel for shared(c0) private(c1, c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) schedule(dynamic, 1)
-  for( c1 = c0 - (c0 + 17) / 17 + 1; c1 <= min(min(N - 3, c0), c0 + (-l + 1)/16 + 1); c1 += 1)
-    for( c3 = max(l, 16 * c0 - 16 * c1 + 2); c3 <= min(c1 + 2, 16 * c0 - 16 * c1 + 17); c3 += 1)
-      for( c4 = (N - c1 - 2) / 16; c4 <= (-l + N - c1 + c3 - 2) / 16; c4 += 1)
-        for( c10 = max(N - c1 - 2, 16 * c4); c10 <= min(-l + N - c1 + c3 - 2, 16 * c4 + 15); c10 += 1)
-          c[(N-c1-2)][(N-c1+c3-2)] += c[(N-c1-2)][(N-c1+c3-2)-1] + paired(c10,(N-c1+c3-2)) ? c[(N-c1-2)][c10-1] + c[c10+1][(N-c1+c3-2)-1] : 0;
-    }
 
 
 
