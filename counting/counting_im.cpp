@@ -246,6 +246,7 @@ int main(int argc, char* argv[]) {
     //printf("Qbp\n");
     //rna_array_print(Qbp);
 
+    if(check)
     for (i = 0; i < DIM; i++)
         for (j = 0; j < DIM; j++)
             if (c[i][j] != ck[i][j]) {
