@@ -104,13 +104,17 @@ printf("\n");
     //  compute the partition functions Q and Qbp
     if(kind==1 || check){
         #pragma scop
-        for (i = N-2;  i>=1; i--){
-           for ( j=i+2; j<= N; j++){
-             for ( k = i; k<=j-l; k++){
-              ck[i][j] +=  ck[i][j-1] + paired(k,j) ?  ck[i][k-1] + ck[k+1][j-1] : 0;
-           }
-          }
+    for (int i = N - 2; i >= 1; i--)
+    {
+      for (int j = i + 2; j <= N; j++)
+      {
+        for (int k = i; k <= j - 1; k++)
+        {
+          ck[i][j] += paired(k, j) ? ck[i][k - 1] + ck[k + 1][j - 1] : 0;
         }
+        ck[i][j] = ck[i][j] + ck[i][j - 1];
+      }
+    }
        #pragma endscop
     }
     if(kind==2) // pluto
