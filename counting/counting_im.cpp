@@ -29,7 +29,7 @@ char * RNA;  //only ACGU
 
 #include "mem.h"
 
-int paired(int i, int j) {
+int pared(int i, int j) {   
    char nt1 = RNA[i];
    char nt2 = RNA[j];
          if ((nt1 == 'A' && nt2 == 'U') || (nt1 == 'U' && nt2 == 'A') ||
