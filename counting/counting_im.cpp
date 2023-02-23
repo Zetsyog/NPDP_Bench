@@ -96,8 +96,8 @@ int main(int argc, char* argv[]) {
     RNA = (char*)malloc(DIM * sizeof(char*));  //read from FASTA file
     rand_seq(RNA, N);
 
-    for (i = 0; i < DIM; i++)
-        printf("%c", RNA[i]);
+   // for (i = 0; i < DIM; i++)
+   //     printf("%c", RNA[i]);
 
     printf("\n");
     int check = 1;
