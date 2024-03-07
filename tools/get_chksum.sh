@@ -4,11 +4,11 @@
 
 # check arguments
 if [ $# -lt 1 ]; then
-    echo "Usage: ./get_chksum.sh <target> [extra_flags]"
+    echo "Usage: ./get_chksum.sh [extra_flags] <target>"
     exit 1
 fi
-target=$1
-EXTRA_FLAGS="$2 -DRESULT_DUMP"
+EXTRA_FLAGS="$1 -DRESULT_DUMP"
+target=$2
 
 # cleanup
 make clean
