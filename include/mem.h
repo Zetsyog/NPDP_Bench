@@ -20,6 +20,10 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
+#ifndef min
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
 #ifndef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
@@ -159,3 +163,44 @@ void rna_seq_print(FILE *fp, char *S) {
 }
 
 void rna_seq_free(char *S) { free(S); }
+
+int ***mem3d() {
+	int i, j;
+	int ***S;
+	S = malloc(DIM * sizeof(int **));
+
+	for (i = 0; i < DIM; i++) {
+		S[i] = malloc(DIM * sizeof(int *));
+	}
+	for (i = 0; i < DIM; i++) {
+		for (j = 0; j < DIM; j++) {
+			S[i][j] = malloc(DIM * sizeof(int));
+		}
+	}
+	return S;
+}
+
+void array3d_print(FILE *fp, int ***S) {
+	int i, j, k;
+
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			for (k = 0; k < N; k++) {
+				fprintf(fp, " %d ", S[i][j][k]);
+			}
+			fprintf(fp, "\n");
+		}
+		fprintf(fp, "\n");
+	}
+}
+
+void free_mem3d(int ***S) {
+	int i, j;
+	for (i = 0; i < DIM; i++) {
+		for (j = 0; j < DIM; j++) {
+			free(S[i][j]);
+		}
+		free(S[i]);
+	}
+	free(S);
+}
