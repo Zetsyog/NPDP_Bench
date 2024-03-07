@@ -76,7 +76,7 @@ void rand_seq(char *a, int _N) {
 	}
 }
 
-void rna_array_init(double **S, int def, int def2) {
+void rna_array_init(double **S, double def, double def2) {
 
 	int i, j;
 
@@ -93,10 +93,11 @@ void rna_array_print(FILE *fp, double **S) {
 
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++)
-			if (i > j)
+			if (i > j) {
 				fprintf(fp, "       ");
-			else
+			} else {
 				fprintf(fp, " %5.3f ", S[i][j]);
+			}
 		fprintf(fp, "\n");
 	}
 	fprintf(fp, "\n");
