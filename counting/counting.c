@@ -1,6 +1,6 @@
 // set check to 0 to measure time, set to 1 to check validity
 
-#include "mem.h"
+#include <mem.h>
 #include <metrics.h>
 #include <stdio.h>
 #include <stdlib.h>
