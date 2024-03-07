@@ -17,6 +17,10 @@
 #define metrics_print_timer _metrics_timer_print();
 #endif // METRICS_TIME
 
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
 #ifndef RSEED
 #define RSEED time(NULL)
 #endif
