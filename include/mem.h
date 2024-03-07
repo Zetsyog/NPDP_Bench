@@ -9,11 +9,19 @@
 #endif
 
 #ifndef DIM
-#define DIM 12
+#define DIM (N + 10)
 #endif
 
 #ifndef RSEED
 #define RSEED time(NULL)
+#endif
+
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
+#ifndef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
 int **mem() {
@@ -80,24 +88,28 @@ void rna_array_init(double **S, double def, double def2) {
 
 	int i, j;
 
-	for (i = 0; i <= N + 5; i++)
-		for (j = 0; j <= N + 5; j++)
-			if (i == j || i == 0)
+	for (i = 0; i <= N + 5; i++) {
+		for (j = 0; j <= N + 5; j++) {
+			if (i == j || i == 0) {
 				S[i][j] = def;
-			else
+			} else {
 				S[i][j] = def2;
+			}
+		}
+	}
 }
 
 void rna_array_print(FILE *fp, double **S) {
 	int i, j;
 
 	for (i = 0; i < N; i++) {
-		for (j = 0; j < N; j++)
+		for (j = 0; j < N; j++) {
 			if (i > j) {
 				fprintf(fp, "       ");
 			} else {
 				fprintf(fp, " %5.3f ", S[i][j]);
 			}
+		}
 		fprintf(fp, "\n");
 	}
 	fprintf(fp, "\n");
