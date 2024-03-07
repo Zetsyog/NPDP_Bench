@@ -3,7 +3,6 @@ POLYCC=${PLUTO}
 CFLAGS=-march=native -O3 -fopenmp
 LDLIBS=-lm -I ../include/
 PLUTO_FLAGS=--tile --parallel
-PLUTO_EXTRA_FLAGS=
 
 
 all: $(PROG) $(PROG)_pluto
