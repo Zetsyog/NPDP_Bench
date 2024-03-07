@@ -24,6 +24,14 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
+#ifndef _bench_fp_type
+#define _bench_fp_type double
+#endif
+
+#ifndef _bench_int_type
+#define _bench_int_type int
+#endif
+
 int **mem() {
 	int i;
 	int **S;
@@ -36,25 +44,25 @@ int **mem() {
 	return S;
 }
 
-double **memd() {
+_bench_fp_type **memd() {
 	int i;
-	double **S = malloc(DIM * sizeof(double *));
+	_bench_fp_type **S = malloc(DIM * sizeof(_bench_fp_type *));
 
 	for (i = 0; i < DIM; i++) {
-		S[i] = malloc(DIM * sizeof(double));
+		S[i] = malloc(DIM * sizeof(_bench_fp_type));
 	}
 
 	return S;
 }
 
-void free_mem(int **S) {
+void free_mem(_bench_int_type **S) {
 	int i;
 	for (i = 0; i < DIM; i++)
 		free(S[i]);
 	free(S);
 }
 
-void free_memd(double **S) {
+void free_memd(_bench_fp_type **S) {
 	int i;
 	for (i = 0; i < DIM; i++)
 		free(S[i]);
@@ -84,7 +92,7 @@ void rand_seq(char *a, int _N) {
 	}
 }
 
-void rna_array_init(double **S, double def, double def2) {
+void rna_array_init(_bench_fp_type **S, _bench_fp_type def, _bench_fp_type def2) {
 
 	int i, j;
 
@@ -99,7 +107,7 @@ void rna_array_init(double **S, double def, double def2) {
 	}
 }
 
-void rna_array_print(FILE *fp, double **S) {
+void rna_array_print(FILE *fp, _bench_fp_type **S) {
 	int i, j;
 
 	for (i = 0; i < N; i++) {
@@ -115,7 +123,7 @@ void rna_array_print(FILE *fp, double **S) {
 	fprintf(fp, "\n");
 }
 
-void array_print(FILE *fp, int **S) {
+void array_print(FILE *fp, _bench_int_type **S) {
 	int i, j;
 
 	for (i = 0; i < N; i++) {
@@ -126,3 +134,28 @@ void array_print(FILE *fp, int **S) {
 	}
 	fprintf(fp, "\n");
 }
+
+void darray_print(FILE *fp, _bench_fp_type **S) {
+	int i, j;
+
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			fprintf(fp, " %.5f ", S[i][j]);
+		}
+		fprintf(fp, "\n");
+	}
+	fprintf(fp, "\n");
+}
+
+char *rna_seq_alloc() { return calloc(DIM, sizeof(char)); }
+
+void rna_seq_print(FILE *fp, char *S) {
+	int i;
+
+	for (i = 0; i < N; i++) {
+		fprintf(fp, " %c ", S[i]);
+	}
+	fprintf(fp, "\n");
+}
+
+void rna_seq_free(char *S) { free(S); }
