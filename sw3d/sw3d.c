@@ -1,29 +1,12 @@
+#include <limits.h>
+#include <math.h>
+#include <mem.h>
+#include <metrics.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <omp.h>
-#include <math.h>
-
-
-#define min(a,b) (((a)<(b))?(a):(b))
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define max(a,b) (((a)>(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define floord(n,d) floor(((double)(n))/((double)(d)))
-#define ceild(n,d) ceil(((double)(n))/((double)(d)))
-#define CHECK_VALID 0
-
 
 int ***H;
-int ***H1;
 
-int ***H0;
-int ***H2;
-int ***H3;
-int ***H4;
-
-
-int ***tmp_H;
 int ***m1;
 int ***m2;
 int ***m3;
@@ -36,140 +19,105 @@ unsigned char *a;
 unsigned char *b;
 unsigned char *c;
 
+// Similarity score of the elements that constituted the two sequences
+int s(unsigned char x, unsigned char z) { return (x == z) ? 3 : -3; }
 
-int N = 100, DIM = 102;
+int main(int argc, char *argv[]) {
+	srand(RSEED);
+	int i, j, k, l;
 
-//Similarity score of the elements that constituted the two sequences
-int s(unsigned char x, unsigned char z){
-   return (x == z) ? 3 : -3;
-}
+	// H is the scoring matrix
+	H = mem3d();
 
+	m1 = mem3d();
+	m2 = mem3d();
+	m3 = mem3d();
+	m4 = mem3d();
+	m5 = mem3d();
+	m6 = mem3d();
 
+	W = (int *)malloc(DIM * sizeof(int));
+	a = rna_seq_alloc();
+	b = rna_seq_alloc();
+	c = rna_seq_alloc();
 
+	for (i = 0; i <= N; i++) {
+		H[i][0][0] = 0;
+		H[0][i][0] = 0;
+		H[0][0][i] = 0;
+	}
 
-#include "mem3d.h"
-#include "sw3d_oryg.h"
-#include "sw3d_traco16.h"
-#include "sw3d_traco128.h"
-#include "sw3d_tstile.h"
-#include "sw3d_pluto.h"
+	// W is the gap alignment
+	W[0] = 2;
+	for (i = 1; i <= N; i++)
+		W[i] = i * W[0];
 
+	rand_seq(a, N);
+	rand_seq(b, N);
+	rand_seq(c, N);
 
+#pragma scop
+	for (i = 1; i <= N; i++) {
+		for (j = 1; j <= N; j++) {
+			for (l = 1; l <= N; l++) {
+				// Block S
+				m1[i][j][l] = INT_MIN;
+				for (k = 1; k <= i; k++) {
+					m1[i][j][l] = MAX(m1[i][j][l], H[i - k][j][l] - 2 * W[k]);
+				}
 
-int main(int argc, char *argv[]){
+				m2[i][j][l] = INT_MIN;
+				for (k = 1; k <= j; k++) {
+					m2[i][j][l] = MAX(m2[i][j][l], H[i][j - k][l] - 2 * W[k]);
+				}
 
-    int i,j,k,l;
+				m3[i][j][l] = INT_MIN;
+				for (k = 1; k <= l; k++) {
+					m3[i][j][l] = MAX(m3[i][j][l], H[i][j][l - k] - 2 * W[k]);
+				}
 
+				m4[i][j][l] = INT_MIN;
+				for (k = 1; k <= min(i, j); k++) {
+					m4[i][j][l] = MAX(m4[i][j][l], H[i - k][j - k][l] - W[k] + s(a[i], b[j]));
+				}
 
-    int num_proc=1;
-    if(argc > 1)
-        num_proc = atoi(argv[1]);
+				m5[i][j][l] = INT_MIN;
+				for (k = 1; k <= min(j, l); k++) {
+					m5[i][j][l] = MAX(m5[i][j][l], H[i][j - k][l - k] - W[k] + s(b[j], c[l]));
+				}
 
-    int kind=1;
+				m6[i][j][l] = INT_MIN;
+				for (k = 1; k <= min(i, l); k++) {
+					m6[i][j][l] = MAX(m6[i][j][l], H[i - k][j][l - k] - W[k] + s(a[i], c[l]));
+				}
 
-    if(argc > 2)
-        N = atoi(argv[2]);
-    DIM = N+2;
+				H[i][j][l] = MAX(0, MAX(H[i - 1][j - 1][l - 1] + s(a[i], b[j]) + s(a[i], c[l]) + s(b[j], c[l]),
+										MAX(m1[i][j][l], MAX(m2[i][j][l], MAX(m3[i][j][l], MAX(m4[i][j][l], MAX(m5[i][j][l], m6[i][j][l])))))));
+			}
+		}
+	}
+#pragma endscop
 
+#ifdef RESULT_DUMP
 
-    if(argc > 3)
-        kind = atoi(argv[3]);
+	fprintf(stderr, "Matrix H\n");
+	fprintf(stderr, "==================\n");
+	array3d_print(stderr, H);
+#endif
 
-    // H is the scoring matrix
-    H = mem();
-    H1 = mem();
-    
-    H0 = mem();
-    H2 = mem();
-    H3 = mem();
-    H4 = mem();    
-    
-    
-    m1 = mem();
-    m2 = mem();
-    m3 = mem();
-    m4 = mem();
-    m5 = mem();
-    m6 = mem();
+	free_mem3d(H);
+	free_mem3d(m1);
+	free_mem3d(m2);
+	free_mem3d(m3);
+	free_mem3d(m4);
+	free_mem3d(m5);
+	free_mem3d(m6);
 
-    W = (int*)malloc(DIM * sizeof(int));
-    a = (unsigned char *)malloc(DIM * sizeof(unsigned char ));
-    b = (unsigned char *)malloc(DIM * sizeof(unsigned char ));
-    c = (unsigned char *)malloc(DIM * sizeof(unsigned char ));
+	free(W);
 
+	rna_seq_free(a);
+	rna_seq_free(b);
+	rna_seq_free(c);
 
-
-    for(i=0; i<=N; i++){
-        H[i][0][0] = 0;
-        H1[i][0][0]= 0;
-        H[0][i][0] = 0;
-        H1[0][i][0] = 0;
-        H[0][0][i] = 0;
-        H1[0][0][i] = 0;
-
-    }
-
-
-    // W is the gap alignment
-    W[0] = 2;
-    for(i=1; i<=N; i++)
-        W[i] = i*W[0];
-
-    rand_seq(a, N);
-    rand_seq(b, N);
-    rand_seq(c, N);
-
-
-
-    omp_set_num_threads(num_proc);
-
-    double start = omp_get_wtime();
-
-    if(kind == 1)
-        sw_seq();
-
-    if(kind == 2){
-        sw3d_pluto();
-    }
-
-
-    if(kind == 3){
-        sw_traco3d();
-    }
-
-    if(kind == 4){
-        sw_traco3d_128();
-    }
-
-
-    if(kind == 5){
-        sw_tstile();
-    }
-
-    if(CHECK_VALID)
-    {    tmp_H = H;
-        H = H1;
-        sw_seq();
-        H = tmp_H;
-
-
-     for(i=0; i<N; i++)
-      for(j=0; j<N; j++)
-        for(l=0; l<N; l++)
-       if(H[i][j][l] != H1[i][j][l]){
-          printf("error!\n");
-          printf("%d\n", H[i][j][l]);
-          printf("%d\n", H1[i][j][l]);
-          printf("%i %i %i \n", i,j,l);
-          exit(0);
-      }
-
-    }
-    double stop = omp_get_wtime();
-    printf("%.4f\n",stop - start);
-
-
-
-
-return 0;
+	return 0;
 }
