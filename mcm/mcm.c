@@ -62,10 +62,10 @@ int main(int argc, char *argv[]) {
 		p[i] = (rand() % 20) + 1;
 	}
 
-	// int p[] = {1, 2, 3, 4};
-	// N = sizeof(p)/sizeof(p[0]);
-
+// int p[] = {1, 2, 3, 4};
+// N = sizeof(p)/sizeof(p[0]);
+#ifdef RESULT_DUMP
 	fprintf(stderr, "Minimum number of multiplications is %d \n", MatrixChainOrder(p, N));
-
+#endif
 	return 0;
 }
