@@ -52,7 +52,7 @@ double mcTDP() {
 #pragma endscop
 
 	metrics_stop_timer;
-	metrics_stop_timer;
+	metrics_print_timer;
 
 	return table[0][N - 1];
 }
