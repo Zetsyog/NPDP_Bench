@@ -164,8 +164,10 @@ for d1 in ${TILESIZE_LVL_1}; do
             else
                 printf "%-12f" "${best_exec_time}" 1>&2
             fi
-
             log ""
+
+            echo "$d1,$d2,$d3,$src_name,$thread_nb,$exec_time,$DATASET_SIZE,$CONFIG,$CFLAGS,$EXTRA_FLAGS,$std_dev" >>$CSV_OUTPUT
+
         done
     done
 done
