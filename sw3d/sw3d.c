@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
 	rand_seq(b, N);
 	rand_seq(c, N);
 
+	metrics_start_timer;
 #pragma scop
 	for (i = 1; i <= N; i++) {
 		for (j = 1; j <= N; j++) {
@@ -97,6 +98,8 @@ int main(int argc, char *argv[]) {
 		}
 	}
 #pragma endscop
+	metrics_stop_timer;
+	metrics_print_timer;
 
 #ifdef RESULT_DUMP
 
