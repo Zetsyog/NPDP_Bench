@@ -10,8 +10,8 @@ fi
 EXTRA_FLAGS="$1 -DRESULT_DUMP"
 target=$2
 
-# cleanup
-make clean
+# delete the old binary
+rm -f "$target"
 
 # compile the benchmark with dump option
 make "$target" PLUTO_EXTRA_FLAGS="-q" EXTRA_FLAGS="$EXTRA_FLAGS"
@@ -24,7 +24,5 @@ chksum=$(sha256sum __temp_dump | awk '{print $1}')
 
 # remove the temporary files
 rm -f __temp_dump
-
-make clean
 
 echo "$chksum"
