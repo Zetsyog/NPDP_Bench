@@ -10,7 +10,7 @@ This repository is a cleaned-up rewrite of the [original NPDP Bench](https://git
 
 | Benchmark | Domain | Loop depth | Time | Memory | Extra parameters |
 |---|---|---|---|---|---|
-| [counting](counting/README.md) | RNA structure counting | 3 | O(n³) | n² (+n²) | `l` (min. loop length, 0) |
+| [counting](counting/README.md) | RNA structure counting | 3 | O(n³) | n² (+n²) | |
 | [counting_im](counting_im/README.md) | RNA structure counting (corrected) | 3 | O(n³) | n² (+n²) | |
 | [knuth](knuth/README.md) | optimal binary search tree | 3 | O(n³) | 2 n² | |
 | [mcc](mcc/README.md) | RNA partition function (McCaskill) | 3 | O(n³) | 2 n² (+n²) | `l`, `ert` |

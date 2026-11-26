@@ -7,7 +7,7 @@ This kernel is derived from the classic dynamic program that counts the secondar
 This version keeps the dependence pattern of that recurrence but not its arithmetic. It sums instead of multiplying, it starts from synthetic values (`c[i][j] = i + j`), and it has no `c[i][j-1]` term:
 
 ```
-c[i][j] += Σ_{k = i}^{j - l} [pair(k, j)] · (c[i][k-1] + c[k+1][j-1])
+c[i][j] += Σ_{k = i}^{j} [pair(k, j)] · (c[i][k-1] + c[k+1][j-1])
 ```
 
 The results are therefore not structure counts; the kernel is a benchmark of the loop structure. [counting_im](../counting_im/README.md) is the "corrected" variant, which adds `c[i][j-1]`.
@@ -15,11 +15,11 @@ The results are therefore not structure counts; the kernel is a benchmark of the
 ## Kernel
 
 ```c
-static void kernel_counting(int n, int l, NPDP_INT_TYPE c[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
+static void kernel_counting(int n, NPDP_INT_TYPE c[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
 #pragma scop
 	for (i = n - 2; i >= 1; i--)
 		for (j = i + 2; j <= n; j++)
-			for (k = i; k <= j - l; k++)
+			for (k = i; k <= j; k++)
 				c[i][j] += NPDP_PAIRED(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
 #pragma endscop
 }
@@ -34,7 +34,7 @@ static void kernel_counting(int n, int l, NPDP_INT_TYPE c[NPDP_DIM][NPDP_DIM], N
 
 - **Loop nest:** 3 loops, 1 statement.
 - **Cost:** O(n³) time, 1 array of `(n+10)²` elements, plus the `int` pair table with `-DNPDP_PAIR_TABLE`.
-- **Parameters:** `n`, and `l`, the minimum loop length (always 0 in `main`).
+- **Parameters:** `n`.
 - **Dependences:** `c[i][j]` reads `c[i][k-1]` (same row, left) and `c[k+1][j-1]` (a lower row). The distance depends on `k`, so the dependences are non-uniform. Rows are computed bottom-up (`i` decreasing).
 
 ## Inputs
@@ -49,6 +49,7 @@ The `n × n` matrix `c`.
 ## Differences from the original
 
 - **Recurrence:** the original was `c[i][j] += c[i][j-1] + paired(k,j) ? ... : 0`. Because of operator precedence it tested `c[i][j-1] + paired(k,j)`; this version keeps only the conditional term (see counting_im for the corrected recurrence).
+- **No minimum loop length:** the original bounded `k` by `j - l`, with `l = 0` hard-coded. The bound is now `k <= j`, which some polyhedral compilers handle better than the extra parameter. Results are identical.
 - **Initialization:** the original initialization loop was broken (`for i ... for i`, with `j` never set).
 - **Overflow:** the arithmetic is unsigned, so overflow is well defined.
 - **Base pairing:** the original function call is kept by default (`NPDP_PAIRED(x, y)` expands to `npdp_paired(seq, x, y)`), for backward compatibility. With `-DNPDP_PAIR_TABLE`, it reads a lookup table `pair[x][y]` built before the timer, so the preprocessed scop contains no call. Results are identical in both modes.

@@ -4,7 +4,8 @@
 BENCHES = counting counting_im knuth mcc mcm mea nussinov nw sw sw3d triang zuker
 
 # C/C++ sources checked by clang-format (style in .clang-format).
-FORMAT_SRCS = $(wildcard */*.c */*.h input/*.cpp)
+# input/ holds the unmodified upstream codes: never reformat them.
+FORMAT_SRCS = $(wildcard */*.c */*.h)
 
 .PHONY: all test golden format format-check clean $(BENCHES)
 
