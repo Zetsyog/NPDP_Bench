@@ -38,5 +38,26 @@
           '';
         };
       });
+
+      # `nix flake check` runs the test suite (tests/run_tests.sh); used by CI.
+      checks = forAllSystems (pkgs: {
+        default = pkgs.stdenv.mkDerivation {
+          name = "npdp-bench-tests";
+          src = self;
+          nativeBuildInputs = [ pkgs.valgrind ];
+
+          NIX_ENFORCE_NO_NATIVE = 0;
+          hardeningDisable = [ "all" ];
+
+          dontConfigure = true;
+          buildPhase = ''
+            runHook preBuild
+            # LeakSanitizer needs ptrace, which the build sandbox forbids
+            ASAN_OPTIONS=detect_leaks=0 make test
+            runHook postBuild
+          '';
+          installPhase = "touch $out";
+        };
+      });
     };
 }
