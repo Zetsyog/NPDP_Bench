@@ -24,7 +24,7 @@ int MatrixChainOrder(int p[], int n) {
 	int **m = mem();
 	s = mem();
 
-	int i, j, k, L, q;
+	int i, k, L;
 
 	/* m[i,j] = Minimum number of scalar multiplications needed
 	   to compute the matrix A[i]A[i+1]...A[j] = A[i..j] where

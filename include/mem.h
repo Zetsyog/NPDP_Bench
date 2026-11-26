@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+// N is the dataset size, set at compile time with -DN=XXX.
+// Kernels must NOT use N directly in their scop: main() passes it to the
+// kernel function as an int argument (n), so that polyhedral compilers that
+// preprocess the source see a symbolic parameter instead of a constant.
 #ifndef N
 #define N 8
-#else
-#define DIM (N + 10)
 #endif
 
 #ifndef DIM

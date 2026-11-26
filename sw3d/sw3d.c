@@ -22,9 +22,11 @@ char *c;
 // Similarity score of the elements that constituted the two sequences
 int s(char x, char z) { return (x == z) ? 3 : -3; }
 
+static void kernel_sw3d(int n);
+
 int main(int argc, char *argv[]) {
 	srand(RSEED);
-	int i, j, k, l;
+	int i, j;
 
 	// H is the scoring matrix
 	H = mem3d();
@@ -62,10 +64,42 @@ int main(int argc, char *argv[]) {
 	rand_seq(c + 1, N);
 
 	metrics_start_timer;
+	kernel_sw3d(N);
+	metrics_stop_timer;
+	metrics_print_timer;
+
+#ifdef RESULT_DUMP
+	fprintf(stderr, "Matrix H\n");
+	fprintf(stderr, "==================\n");
+	array3d_print(stderr, H);
+#endif
+
+	free_mem3d(H);
+	free_mem3d(m1);
+	free_mem3d(m2);
+	free_mem3d(m3);
+	free_mem3d(m4);
+	free_mem3d(m5);
+	free_mem3d(m6);
+
+	free(W);
+
+	rna_seq_free(a);
+	rna_seq_free(b);
+	rna_seq_free(c);
+
+	return 0;
+}
+
+// n: dataset size, passed as an argument so that it is a symbolic
+// parameter in the scop.
+static void kernel_sw3d(int n) {
+	int i, j, k, l;
+
 #pragma scop
-	for (i = 1; i <= N; i++) {
-		for (j = 1; j <= N; j++) {
-			for (l = 1; l <= N; l++) {
+	for (i = 1; i <= n; i++) {
+		for (j = 1; j <= n; j++) {
+			for (l = 1; l <= n; l++) {
 				// Block S
 				m1[i][j][l] = INT_MIN;
 				for (k = 1; k <= i; k++) {
@@ -103,29 +137,4 @@ int main(int argc, char *argv[]) {
 		}
 	}
 #pragma endscop
-	metrics_stop_timer;
-	metrics_print_timer;
-
-#ifdef RESULT_DUMP
-
-	fprintf(stderr, "Matrix H\n");
-	fprintf(stderr, "==================\n");
-	array3d_print(stderr, H);
-#endif
-
-	free_mem3d(H);
-	free_mem3d(m1);
-	free_mem3d(m2);
-	free_mem3d(m3);
-	free_mem3d(m4);
-	free_mem3d(m5);
-	free_mem3d(m6);
-
-	free(W);
-
-	rna_seq_free(a);
-	rna_seq_free(b);
-	rna_seq_free(c);
-
-	return 0;
 }

@@ -12,6 +12,7 @@ double **Qbp;
 double **Pbp;
 double **Pu;
 double **M;
+double *Puu;
 
 float ERT;
 
@@ -28,10 +29,74 @@ int paired(int i, int j) {
 	}
 }
 
+// n: dataset size, l: minimum loop length.
+// Passed as arguments so that they are symbolic parameters in the scop.
+static void kernel_mea(int n, int l) {
+	int i, j, k, p, q;
+
+	//  compute the partition functions Q and Qbp
+#pragma scop
+	if (n >= 1 && l >= 0 && l <= 5) {
+		for (i = n - 1; i >= 0; i--) {
+			for (j = i + 1; j < n; j++) {
+				Q[i][j] = Q[i][j - 1];
+				for (k = 0; k < j - i - l; k++) {
+					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
+					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
+				}
+			}
+		}
+	}
+
+	for (i = 0; i < n; i++) {
+		for (j = i + 1; j < n; j++) {
+			Pbp[i][j] = (Q[0][i] * Q[j][n - 1] * Qbp[i][j]) / Q[0][n - 1]; //  Pbp[i][j] = (Q[1][i]*Q[j+1][N]*Qbp[i][j])/Q[0][N-1];
+			for (p = 0; p < i; p++) {
+				for (q = j + 1; q < n; q++) {
+					Pbp[i][j] += (Pbp[p][q] * ERT * Q[p + 1][i] * Qbp[i][j] * Q[j + 1][q - 1]) / (Qbp[p][q] == 0 ? 1 : Qbp[p][q]);
+				}
+			}
+		}
+	}
+
+	for (i = n - 1; i >= 0; i--) {
+		for (j = i + 1; j < n; j++) {
+			Pu[i][j] = (Q[0][i] * Q[j][n - 1] * 1) / Q[0][n - 1];
+			for (p = 0; p < i; p++) {
+				for (q = j + 1; q < n; q++) {
+					Pu[i][j] += (Pbp[p][q] * ERT * Q[p + 1][i] * 1 * Q[j + 1][q - 1]) / (Qbp[p][q] == 0 ? 1 : Qbp[p][q]);
+				}
+			}
+		}
+	}
+
+	for (i = 0; i <= n; i++) {
+		Puu[i] = 1;
+		for (j = i + 1; j < n; j++) {
+			Puu[i] += -1 * Pbp[i][j + 1];
+		}
+		for (k = 0; k < i; k++) {
+			Puu[i] += -1 * Pbp[k][i + 1];
+		}
+	}
+
+	for (i = n - 1; i >= 0; i--) {
+		for (j = i + 1; j < n; j++) {
+			for (k = 0; k < j - i - l; k++) {
+				// k == 0 would read M[i][i-1], i.e. M[0][-1] when i == 0 (out of bounds in the
+				// original code). The lower triangle is 0, so use 0 for that term.
+				M[i][j] = MAX(M[i][j], (k > 0 ? M[i][k + i - 1] : 0) + M[k + i + 1][j - 1] + delta * Pbp[k + i][j]) * paired(k + i, j - 1);
+			}
+			M[i][j] = MAX(M[i][j], M[i][j - 1] + Puu[j - 1]);
+		}
+	}
+#pragma endscop
+}
+
 int main(int argc, char *argv[]) {
 	srand(RSEED);
 
-	int i, j, k, ll, p, q;
+	int i;
 
 	ERT = exp((float)-Ebp / (float)RT);
 
@@ -54,7 +119,7 @@ int main(int argc, char *argv[]) {
 	Pbp = memd();
 	Pu = memd();
 	M = memd();
-	double *Puu = (double *)malloc(DIM * sizeof(double));
+	Puu = malloc(DIM * sizeof(double));
 
 	rna_array_init(Q, 1.0, 1.0);
 	rna_array_init(Qbp, 0, 0);
@@ -62,66 +127,8 @@ int main(int argc, char *argv[]) {
 	rna_array_init(Pu, 0, 0);
 	rna_array_init(M, 0, 0);
 
-	//  compute the partition functions Q and Qbp
-
 	metrics_start_timer;
-#pragma scop
-	if (N >= 1 && l >= 0 && l <= 5) {
-		for (i = N - 1; i >= 0; i--) {
-			for (j = i + 1; j < N; j++) {
-				Q[i][j] = Q[i][j - 1];
-				for (k = 0; k < j - i - l; k++) {
-					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
-					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
-				}
-			}
-		}
-	}
-
-	for (i = 0; i < N; i++) {
-		for (j = i + 1; j < N; j++) {
-			Pbp[i][j] = (Q[0][i] * Q[j][N - 1] * Qbp[i][j]) / Q[0][N - 1]; //  Pbp[i][j] = (Q[1][i]*Q[j+1][N]*Qbp[i][j])/Q[0][N-1];
-			for (p = 0; p < i; p++) {
-				for (q = j + 1; q < N; q++) {
-					Pbp[i][j] += (Pbp[p][q] * ERT * Q[p + 1][i] * Qbp[i][j] * Q[j + 1][q - 1]) / (Qbp[p][q] == 0 ? 1 : Qbp[p][q]);
-				}
-			}
-		}
-	}
-
-	for (i = N - 1; i >= 0; i--) {
-		for (j = i + 1; j < N; j++) {
-			Pu[i][j] = (Q[0][i] * Q[j][N - 1] * 1) / Q[0][N - 1];
-			for (p = 0; p < i; p++) {
-				for (q = j + 1; q < N; q++) {
-					Pu[i][j] += (Pbp[p][q] * ERT * Q[p + 1][i] * 1 * Q[j + 1][q - 1]) / (Qbp[p][q] == 0 ? 1 : Qbp[p][q]);
-				}
-			}
-		}
-	}
-
-	for (i = 0; i <= N; i++) {
-		Puu[i] = 1;
-		for (j = i + 1; j < N; j++) {
-			Puu[i] += -1 * Pbp[i][j + 1];
-		}
-		for (k = 0; k < i; k++) {
-			Puu[i] += -1 * Pbp[k][i + 1];
-		}
-	}
-
-	for (i = N - 1; i >= 0; i--) {
-		for (j = i + 1; j < N; j++) {
-			for (k = 0; k < j - i - l; k++) {
-				// k == 0 would read M[i][i-1], i.e. M[0][-1] when i == 0 (out of bounds in the
-				// original code). The lower triangle is 0, so use 0 for that term.
-				M[i][j] = MAX(M[i][j], (k > 0 ? M[i][k + i - 1] : 0) + M[k + i + 1][j - 1] + delta * Pbp[k + i][j]) * paired(k + i, j - 1);
-			}
-			M[i][j] = MAX(M[i][j], M[i][j - 1] + Puu[j - 1]);
-		}
-	}
-#pragma endscop
-
+	kernel_mea(N, MIN_LOOP);
 	metrics_stop_timer;
 	metrics_print_timer;
 

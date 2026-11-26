@@ -26,18 +26,19 @@ double cost(int i, int j, int k) {
 	return dist(p1, p2) + dist(p2, p3) + dist(p3, p1);
 }
 
-// Matrix Ai has dimension p[i-1] x p[i] for i = 1..n
-double mcTDP() {
+// Minimum cost triangulation of a convex polygon of n vertices.
+// n is passed as an argument so that it is a symbolic parameter in the scop.
+double mcTDP(int n) {
 
 	table = memd();
 
-	int i, j, k, gap, q;
+	int j, k, gap;
 
 	metrics_start_timer;
 
 #pragma scop
-	for (gap = 0; gap < N; gap++) {
-		for (j = gap; j < N; j++) // i = j - gap
+	for (gap = 0; gap < n; gap++) {
+		for (j = gap; j < n; j++) // i = j - gap
 		{
 			if (gap < 2)
 				table[j - gap][j] = 0.0;
@@ -54,7 +55,7 @@ double mcTDP() {
 	metrics_stop_timer;
 	metrics_print_timer;
 
-	return table[0][N - 1];
+	return table[0][n - 1];
 }
 
 int main(int argc, char *argv[]) {
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]) {
 		points[i][1] = rand() % 100;
 	}
 
-	double res = mcTDP();
+	double res = mcTDP(N);
 
 #ifdef RESULT_DUMP
 	fprintf(stderr, "%f\n", res);

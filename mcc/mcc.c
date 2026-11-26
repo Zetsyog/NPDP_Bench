@@ -24,10 +24,29 @@ int paired(int i, int j) {
 	}
 }
 
+// n: dataset size, l: minimum loop length.
+// Passed as arguments so that they are symbolic parameters in the scop.
+static void kernel_mcc(int n, int l) {
+	int i, j, k;
+
+	//  compute the partition functions Q and Qbp
+#pragma scop
+	if (n >= 1 && l >= 0 && l <= 5) {
+		for (i = n - 1; i >= 0; i--) {
+			for (j = i + 1; j < n; j++) {
+				Q[i][j] = Q[i][j - 1];
+				for (k = 0; k < j - i - l; k++) {
+					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
+					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
+				}
+			}
+		}
+	}
+#pragma endscop
+}
+
 int main(int argc, char *argv[]) {
 	srand(RSEED);
-
-	int i, j, k, ll, p, q;
 
 	ERT = exp((float)-Ebp / (float)RT);
 
@@ -41,20 +60,7 @@ int main(int argc, char *argv[]) {
 	rna_array_init(Qbp, 0.5, 0.5);
 
 	metrics_start_timer;
-	//  compute the partition functions Q and Qbp
-#pragma scop
-	if (N >= 1 && l >= 0 && l <= 5) {
-		for (i = N - 1; i >= 0; i--) {
-			for (j = i + 1; j < N; j++) {
-				Q[i][j] = Q[i][j - 1];
-				for (k = 0; k < j - i - l; k++) {
-					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
-					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
-				}
-			}
-		}
-	}
-#pragma endscop
+	kernel_mcc(N, MIN_LOOP);
 	metrics_stop_timer;
 	metrics_print_timer;
 

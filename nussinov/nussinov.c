@@ -20,22 +20,15 @@ int can_pair(char *input, int a, int b) {
 			   : 0;
 }
 
-int main(int argc, char *argv[]) {
-
-	S = memd();
-	RNA = rna_seq_alloc();
-
+// n: dataset size, passed as an argument so that it is a symbolic
+// parameter in the scop.
+static void kernel_nussinov(int n) {
 	int i, j, k;
 
-	srand(RSEED);
-	rand_seq(RNA, N);
-
-	metrics_start_timer;
-
 #pragma scop
-	for (i = N - 1; i >= 0; i--) {
+	for (i = n - 1; i >= 0; i--) {
 
-		for (j = i + 1; j < N; j++) {
+		for (j = i + 1; j < n; j++) {
 			for (k = 0; k < j - i; k++) {
 				S[i][j] = MAX(S[i][k + i] + S[k + i + 1][j], S[i][j]);
 			}
@@ -45,7 +38,18 @@ int main(int argc, char *argv[]) {
 		}
 	}
 #pragma endscop
+}
 
+int main(int argc, char *argv[]) {
+
+	S = memd();
+	RNA = rna_seq_alloc();
+
+	srand(RSEED);
+	rand_seq(RNA, N);
+
+	metrics_start_timer;
+	kernel_nussinov(N);
 	metrics_stop_timer;
 	metrics_print_timer;
 

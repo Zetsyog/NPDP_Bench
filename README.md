@@ -37,7 +37,8 @@ gcc -o prog prog.c -O3 -fopenmp -DMACRO1 -DMACRO2=423
 ```
 
 - `METRICS_TIME` if defined, the program will measure the time spent in the main computation kernel. Unset by default
-- `N` usually the size of the dataset. Default is 8
+- `N` usually the size of the dataset. Default is 8. Each kernel lives in its own function and receives the size as an `int n` argument (`kernel_xxx(N)` in `main`), so `N` never appears inside a `#pragma scop` region: polyhedral compilers that preprocess the source still see a symbolic parameter `n`, not a constant
+- `MIN_LOOP` (`mcc`, `mea`) minimum loop length 0-5, passed to the kernel as the `l` parameter. Default is 0
 - `RSEED` seed used for random number generation. Default is `time(NULL)` (`get_chksum.sh` uses 42 when not given)
 - `RESULT_DUMP` if defined, the program will dump the result of its computation in stderr. Unset by default
 

@@ -23,10 +23,23 @@ int paired(int i, int j) {
 	}
 }
 
+// n: dataset size, passed as an argument so that it is a symbolic
+// parameter in the scop.
+static void kernel_counting_im(int n) {
+#pragma scop
+	for (int i = n - 2; i >= 1; i--)
+		for (int j = i + 2; j <= n; j++) {
+			for (int k = i; k <= j - 1; k++)
+				c[i][j] += paired(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
+			c[i][j] = c[i][j] + c[i][j - 1];
+		}
+#pragma endscop
+}
+
 int main(int argc, char *argv[]) {
 	srand(RSEED);
 
-	int i, j, k, l = 0;
+	int i, j;
 
 	// printf(" -exp(Ebp/RT) = %5.3f\n", ERT);
 
@@ -42,16 +55,7 @@ int main(int argc, char *argv[]) {
 	rand_seq(RNA, DIM);
 
 	metrics_start_timer;
-
-#pragma scop
-	for (int i = N - 2; i >= 1; i--)
-		for (int j = i + 2; j <= N; j++) {
-			for (int k = i; k <= j - 1; k++)
-				c[i][j] += paired(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
-			c[i][j] = c[i][j] + c[i][j - 1];
-		}
-#pragma endscop
-
+	kernel_counting_im(N);
 	metrics_stop_timer;
 	metrics_print_timer;
 

@@ -21,10 +21,26 @@ int paired(int i, int j) {
 	}
 }
 
+// n: dataset size, l: minimum loop length.
+// Passed as arguments so that they are symbolic parameters in the scop.
+static void kernel_counting(int n, int l) {
+	int i, j, k;
+
+#pragma scop
+	for (i = n - 2; i >= 1; i--) {
+		for (j = i + 2; j <= n; j++) {
+			for (k = i; k <= j - l; k++) {
+				c[i][j] += paired(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
+			}
+		}
+	}
+#pragma endscop
+}
+
 int main() {
 	srand(RSEED);
 
-	int i, j, k, l = 0;
+	int i, j;
 
 	// printf(" -exp(Ebp/RT) = %5.3f\n", ERT);
 
@@ -40,16 +56,7 @@ int main() {
 	rand_seq(RNA, DIM);
 
 	metrics_start_timer;
-	//  compute the partition functions Q and Qbp
-#pragma scop
-	for (i = N - 2; i >= 1; i--) {
-		for (j = i + 2; j <= N; j++) {
-			for (k = i; k <= j - l; k++) {
-				c[i][j] += paired(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
-			}
-		}
-	}
-#pragma endscop
+	kernel_counting(N, 0);
 	metrics_stop_timer;
 	metrics_print_timer;
 

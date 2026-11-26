@@ -10,8 +10,32 @@ int **V;
 int **EFL;
 int **EHF;
 
-int main(int argc, char *argv[]) {
+// n: dataset size, passed as an argument so that it is a symbolic
+// parameter in the scop.
+static void kernel_zuker(int n) {
 	int i, j, k, m;
+
+#pragma scop
+	for (i = n - 1; i >= 0; i--) {
+		for (j = i + 1; j < n; j++) {
+			for (k = i + 1; k < j; k++) {
+				for (m = k + 1; m < j; m++) {
+					if (k - i + j - m > 2 && k - i + j - m < 30)
+						V[i][j] = MIN(V[k][m] + EFL[i][j], V[i][j]);
+				}
+				W[i][j] += MIN(MIN(W[i][k], W[k + 1][j]), W[i][j]);
+				if (k < j - 1)
+					V[i][j] = MIN(W[i + 1][k] + W[k + 1][j - 1], V[i][j]);
+			}
+			V[i][j] = MIN(MIN(V[i + 1][j - 1], EHF[i][j]), V[i][j]);
+			W[i][j] = MIN(MIN(MIN(W[i + 1][j], W[i][j - 1]), V[i][j]), W[i][j]);
+		}
+	}
+#pragma endscop
+}
+
+int main(int argc, char *argv[]) {
+	int i, j;
 
 	W = mem();
 	V = mem();
@@ -28,25 +52,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	metrics_start_timer;
-
-#pragma scop
-	for (i = N - 1; i >= 0; i--) {
-		for (j = i + 1; j < N; j++) {
-			for (k = i + 1; k < j; k++) {
-				for (m = k + 1; m < j; m++) {
-					if (k - i + j - m > 2 && k - i + j - m < 30)
-						V[i][j] = MIN(V[k][m] + EFL[i][j], V[i][j]);
-				}
-				W[i][j] += MIN(MIN(W[i][k], W[k + 1][j]), W[i][j]);
-				if (k < j - 1)
-					V[i][j] = MIN(W[i + 1][k] + W[k + 1][j - 1], V[i][j]);
-			}
-			V[i][j] = MIN(MIN(V[i + 1][j - 1], EHF[i][j]), V[i][j]);
-			W[i][j] = MIN(MIN(MIN(W[i + 1][j], W[i][j - 1]), V[i][j]), W[i][j]);
-		}
-	}
-#pragma endscop
-
+	kernel_zuker(N);
 	metrics_stop_timer;
 	metrics_print_timer;
 
