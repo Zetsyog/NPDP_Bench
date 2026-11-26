@@ -1,24 +1,17 @@
-#include <limits.h>
-#include <math.h>
+// Smith-Waterman local sequence alignment with general gap penalties
+// (see README.md).
+
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-int **H;
-int **m1;
-int **m2;
+#include <limits.h>
 
-int *W;
-char *a;
-char *b;
-
-// Similarity score of the elements that constituted the two sequences
-int s(char x, char z) { return (x == z) ? 1 : -1; }
-
-// n: dataset size, passed as an argument so that it is a symbolic
-// parameter in the scop.
-static void kernel_sw(int n) {
+// n: dataset size (symbolic parameter), both sequences have length n.
+// H: scoring matrix, m1/m2: best score ending with a vertical/horizontal gap.
+// W[k]: penalty of a gap of length k.
+// sim[i][j]: similarity of a[i] and b[j] (+1 match, -1 mismatch).
+static void kernel_sw(int n, int H[NPDP_DIM][NPDP_DIM], int m1[NPDP_DIM][NPDP_DIM], int m2[NPDP_DIM][NPDP_DIM], int W[NPDP_DIM],
+					  int sim[NPDP_DIM][NPDP_DIM]) {
 	int i, j, k;
 
 #pragma scop
@@ -27,59 +20,57 @@ static void kernel_sw(int n) {
 			// Block S
 			m1[i][j] = INT_MIN;
 			for (k = 1; k <= i; k++)
-				m1[i][j] = MAX(m1[i][j], H[i - k][j] - W[k]);
+				m1[i][j] = NPDP_MAX(m1[i][j], H[i - k][j] - W[k]);
 			m2[i][j] = INT_MIN;
 			for (k = 1; k <= j; k++)
-				m2[i][j] = MAX(m2[i][j], H[i][j - k] - W[k]);
-			H[i][j] = MAX(0, MAX(H[i - 1][j - 1] + s(a[i], b[j]), MAX(m1[i][j], m2[i][j])));
+				m2[i][j] = NPDP_MAX(m2[i][j], H[i][j - k] - W[k]);
+			H[i][j] = NPDP_MAX(0, NPDP_MAX(H[i - 1][j - 1] + sim[i][j], NPDP_MAX(m1[i][j], m2[i][j])));
 		}
 #pragma endscop
 }
 
-int main(int argc, char *argv[]) {
-	srand(RSEED);
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
 
-	int i;
+	int(*H)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*m1)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*m2)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*sim)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int *W = NPDP_ALLOC_1D(int);
+	char *a = NPDP_ALLOC_1D(char);
+	char *b = NPDP_ALLOC_1D(char);
 
-	// H is the scoring matrix
-	H = mem();
-	m1 = mem();
-	m2 = mem();
-
-	W = calloc(DIM, sizeof(int));
-	a = rna_seq_alloc();
-	b = rna_seq_alloc();
-
-	for (i = 0; i <= N; i++) {
-		H[i][0] = 0;
-		H[0][i] = 0;
-	}
+	// Local alignment: borders of H are 0 (zero-initialized).
 
 	// W is the gap alignment
 	W[0] = 2;
-	for (i = 1; i <= N; i++)
+	for (int i = 1; i <= N; i++)
 		W[i] = i * W[0];
 
 	// Sequences are 1-indexed in the kernel (a[1..N])
-	rand_seq(a + 1, N);
-	rand_seq(b + 1, N);
+	npdp_rand_seq(a + 1, N);
+	npdp_rand_seq(b + 1, N);
+	npdp_build_sim_table(a, b, 1, -1, sim);
 
-	metrics_start_timer;
-	kernel_sw(N);
-	metrics_stop_timer;
-	metrics_print_timer;
+	NPDP_TIMER_START;
+	kernel_sw(N, H, m1, m2, W, sim);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-#ifdef RESULT_DUMP
+#ifdef NPDP_DUMP
 	fprintf(stderr, "Matrix H\n");
 	fprintf(stderr, "==================\n");
-	array_print(stderr, H);
+	NPDP_DUMP_2D(stderr, H, N, " %lld ", long long);
 #endif
 
-	free_mem(H);
-	free_mem(m1);
-	free_mem(m2);
+	free(H);
+	free(m1);
+	free(m2);
+	free(sim);
 	free(W);
-	rna_seq_free(a);
-	rna_seq_free(b);
+	free(a);
+	free(b);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

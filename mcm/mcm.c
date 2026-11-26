@@ -1,40 +1,16 @@
-// See the Cormen book for details of the following algorithm
-#include <limits.h>
-#include <math.h>
+// Matrix chain multiplication order (see README.md and Cormen et al.).
+
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
 
-int **s;
+#include <limits.h>
 
-int minsq(int a, int b, int i, int j, int k) {
-	if (a < b) {
-		s[i][j] = k;
-		return a;
-	} else
-		return b;
-}
-
-// Matrix Ai has dimension p[i-1] x p[i] for i = 1..n
-int MatrixChainOrder(int p[], int n) {
-
-	/* For simplicity of the program, one extra row and one
-	   extra column are allocated in m[][].  0th row and 0th
-	   column of m[][] are not used */
-	int **m = mem();
-	s = mem();
-
+// Matrix A_i has dimension p[i-1] x p[i] for i = 1..n-1 (n = length of p).
+// m[i][j]: minimum number of scalar multiplications to compute A_i..A_j.
+// s[i][j]: split point k of the optimal parenthesization of A_i..A_j.
+// Row and column 0 of m and s are not used.
+static void kernel_mcm(int n, int m[NPDP_DIM][NPDP_DIM], int s[NPDP_DIM][NPDP_DIM], int p[NPDP_DIM]) {
 	int i, k, L;
-
-	/* m[i,j] = Minimum number of scalar multiplications needed
-	   to compute the matrix A[i]A[i+1]...A[j] = A[i..j] where
-	   dimension of A[i] is p[i-1] x p[i] */
-
-	// cost is zero when multiplying one matrix.
-	for (i = 1; i < n; i++)
-		m[i][i] = 0;
-
-	metrics_start_timer;
 
 #pragma scop
 	// L is chain length.
@@ -42,36 +18,43 @@ int MatrixChainOrder(int p[], int n) {
 		for (i = 1; i < n - L + 1; i++) {
 			m[i][i + L - 1] = INT_MAX;
 			for (k = i; k <= i + L - 1 - 1; k++) {
-				m[i][i + L - 1] = minsq(m[i][k] + m[k + 1][i + L - 1] + p[i - 1] * p[k] * p[i + L - 1], m[i][i + L - 1], i, i + L - 1, k);
+				// Record the split before updating the minimum (same semantics as
+				// the original minsq helper function, without a hidden side effect).
+				s[i][i + L - 1] = (m[i][k] + m[k + 1][i + L - 1] + p[i - 1] * p[k] * p[i + L - 1] < m[i][i + L - 1]) ? k : s[i][i + L - 1];
+				m[i][i + L - 1] = NPDP_MIN(m[i][i + L - 1], m[i][k] + m[k + 1][i + L - 1] + p[i - 1] * p[k] * p[i + L - 1]);
 			}
 		}
 	}
 #pragma endscop
-
-	metrics_stop_timer;
-	metrics_print_timer;
-
-	int res = m[1][n - 1];
-	free_mem(m);
-	free_mem(s);
-	return res;
 }
 
-int main(int argc, char *argv[]) {
-	srand(RSEED);
-	int *p = calloc(DIM, sizeof(int));
-	for (int i = 0; i < N; i++) {
-		// TODO: max matrix size as macro ?
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
+
+	int *p = NPDP_ALLOC_1D(int);
+	int(*m)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*s)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+
+	for (int i = 0; i < N; i++)
 		p[i] = (rand() % 20) + 1;
-	}
 
-	int res = MatrixChainOrder(p, N);
+	// cost is zero when multiplying one matrix (m is zero-initialized).
+	NPDP_TIMER_START;
+	kernel_mcm(N, m, s, p);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-// int p[] = {1, 2, 3, 4};
-// N = sizeof(p)/sizeof(p[0]);
-#ifdef RESULT_DUMP
-	fprintf(stderr, "Minimum number of multiplications is %d \n", res);
+#ifdef NPDP_DUMP
+	fprintf(stderr, "Minimum number of multiplications is %d \n", N > 1 ? m[1][N - 1] : 0);
+	fprintf(stderr, "Array s\n");
+	fprintf(stderr, "===============\n");
+	NPDP_DUMP_UPPER_2D(stderr, s, N, " %d ", int);
 #endif
+
 	free(p);
+	free(m);
+	free(s);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

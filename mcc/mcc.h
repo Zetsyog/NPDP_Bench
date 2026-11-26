@@ -1,21 +1,19 @@
-#ifndef MCC_H
-#define MCC_H
+#ifndef NPDP_MCC_H
+#define NPDP_MCC_H
 
-#ifndef Ebp
-#define Ebp 0 // Energy weight of base pair  -2, -1, 0, 1, 2
-#endif		  // Ebp
+// Energy weight of a base pair: -2, -1, 0, 1, 2
+#ifndef NPDP_EBP
+#define NPDP_EBP 0
+#endif
 
-#ifndef RT
-#define RT 1 // 'Normalized' temperature 1,2,3,4,5
-#endif		 // RT
+// 'Normalized' temperature: 1, 2, 3, 4, 5
+#ifndef NPDP_RT
+#define NPDP_RT 1
+#endif
 
 // Minimum loop length 0-5. Passed to the kernel as the `l` parameter.
-#ifndef MIN_LOOP
-#define MIN_LOOP 0
-#endif // MIN_LOOP
+#ifndef NPDP_MIN_LOOP
+#define NPDP_MIN_LOOP 0
+#endif
 
-#ifndef delta
-#define delta 1 // Base pair weighting  1-5
-#endif			// delta
-
-#endif // MCC_H
+#endif // NPDP_MCC_H

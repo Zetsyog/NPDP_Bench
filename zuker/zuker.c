@@ -1,18 +1,12 @@
+// Zuker-like RNA folding recurrence (see README.md).
+
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-#define CHECK_VALID 0
-
-int **W;
-int **V;
-int **EFL;
-int **EHF;
-
-// n: dataset size, passed as an argument so that it is a symbolic
-// parameter in the scop.
-static void kernel_zuker(int n) {
+// n: dataset size (symbolic parameter).
+// V[i][j]: energy of i..j when i and j are paired, W[i][j]: energy of i..j.
+// EFL, EHF: energy terms of interior loops and hairpin loops.
+static void kernel_zuker(int n, int W[NPDP_DIM][NPDP_DIM], int V[NPDP_DIM][NPDP_DIM], int EFL[NPDP_DIM][NPDP_DIM], int EHF[NPDP_DIM][NPDP_DIM]) {
 	int i, j, k, m;
 
 #pragma scop
@@ -21,29 +15,28 @@ static void kernel_zuker(int n) {
 			for (k = i + 1; k < j; k++) {
 				for (m = k + 1; m < j; m++) {
 					if (k - i + j - m > 2 && k - i + j - m < 30)
-						V[i][j] = MIN(V[k][m] + EFL[i][j], V[i][j]);
+						V[i][j] = NPDP_MIN(V[k][m] + EFL[i][j], V[i][j]);
 				}
-				W[i][j] += MIN(MIN(W[i][k], W[k + 1][j]), W[i][j]);
+				W[i][j] += NPDP_MIN(NPDP_MIN(W[i][k], W[k + 1][j]), W[i][j]);
 				if (k < j - 1)
-					V[i][j] = MIN(W[i + 1][k] + W[k + 1][j - 1], V[i][j]);
+					V[i][j] = NPDP_MIN(W[i + 1][k] + W[k + 1][j - 1], V[i][j]);
 			}
-			V[i][j] = MIN(MIN(V[i + 1][j - 1], EHF[i][j]), V[i][j]);
-			W[i][j] = MIN(MIN(MIN(W[i + 1][j], W[i][j - 1]), V[i][j]), W[i][j]);
+			V[i][j] = NPDP_MIN(NPDP_MIN(V[i + 1][j - 1], EHF[i][j]), V[i][j]);
+			W[i][j] = NPDP_MIN(NPDP_MIN(NPDP_MIN(W[i + 1][j], W[i][j - 1]), V[i][j]), W[i][j]);
 		}
 	}
 #pragma endscop
 }
 
-int main(int argc, char *argv[]) {
-	int i, j;
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	int(*W)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*V)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*EFL)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*EHF)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 
-	W = mem();
-	V = mem();
-	EFL = mem();
-	EHF = mem();
-
-	for (i = 0; i < N; i++) {
-		for (j = 0; j < N; j++) {
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
 			W[i][j] = i * j;
 			V[i][j] = i + 1;
 			EHF[i][j] = i + 1;
@@ -51,24 +44,24 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	metrics_start_timer;
-	kernel_zuker(N);
-	metrics_stop_timer;
-	metrics_print_timer;
+	NPDP_TIMER_START;
+	kernel_zuker(N, W, V, EFL, EHF);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-#ifdef RESULT_DUMP
+#ifdef NPDP_DUMP
 	fprintf(stderr, "Matrix V\n");
 	fprintf(stderr, "====================\n");
-	array_print(stderr, V);
+	NPDP_DUMP_2D(stderr, V, N, " %lld ", long long);
 	fprintf(stderr, "Matrix W\n");
 	fprintf(stderr, "====================\n");
-	array_print(stderr, W);
+	NPDP_DUMP_2D(stderr, W, N, " %lld ", long long);
 #endif
 
-	free_mem(W);
-	free_mem(V);
-	free_mem(EFL);
-	free_mem(EHF);
-
+	free(W);
+	free(V);
+	free(EFL);
+	free(EHF);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

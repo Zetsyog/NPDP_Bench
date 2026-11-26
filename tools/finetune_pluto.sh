@@ -64,7 +64,7 @@ if [ -z ${EXTRA_FLAGS+x} ]; then
     log "EXTRA_FLAGS is not set"
     exit 1
 fi
-EXTRA_FLAGS="$EXTRA_FLAGS -lm -DMETRICS_TIME"
+EXTRA_FLAGS="$EXTRA_FLAGS -lm -DNPDP_TIME"
 
 if [ -z ${INCLUDE_DIR+x} ]; then
     log "INCLUDE_DIR is not set"

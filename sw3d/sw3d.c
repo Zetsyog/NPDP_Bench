@@ -1,99 +1,21 @@
-#include <limits.h>
-#include <math.h>
+// Smith-Waterman local alignment of three sequences (see README.md).
+
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-int ***H;
+#include <limits.h>
 
-int ***m1;
-int ***m2;
-int ***m3;
-int ***m4;
-int ***m5;
-int ***m6;
-
-int *W;
-char *a;
-char *b;
-char *c;
-
-// Similarity score of the elements that constituted the two sequences
-int s(char x, char z) { return (x == z) ? 3 : -3; }
-
-static void kernel_sw3d(int n);
-
-int main(int argc, char *argv[]) {
-	srand(RSEED);
-	int i, j;
-
-	// H is the scoring matrix
-	H = mem3d();
-
-	m1 = mem3d();
-	m2 = mem3d();
-	m3 = mem3d();
-	m4 = mem3d();
-	m5 = mem3d();
-	m6 = mem3d();
-
-	W = (int *)malloc(DIM * sizeof(int));
-	a = rna_seq_alloc();
-	b = rna_seq_alloc();
-	c = rna_seq_alloc();
-
-	// The kernel reads the three border faces (index 0 on any axis),
-	// so all of them must be initialized, not just the three edges.
-	for (i = 0; i <= N; i++) {
-		for (j = 0; j <= N; j++) {
-			H[i][j][0] = 0;
-			H[i][0][j] = 0;
-			H[0][i][j] = 0;
-		}
-	}
-
-	// W is the gap alignment
-	W[0] = 2;
-	for (i = 1; i <= N; i++)
-		W[i] = i * W[0];
-
-	// Sequences are 1-indexed in the kernel (a[1..N])
-	rand_seq(a + 1, N);
-	rand_seq(b + 1, N);
-	rand_seq(c + 1, N);
-
-	metrics_start_timer;
-	kernel_sw3d(N);
-	metrics_stop_timer;
-	metrics_print_timer;
-
-#ifdef RESULT_DUMP
-	fprintf(stderr, "Matrix H\n");
-	fprintf(stderr, "==================\n");
-	array3d_print(stderr, H);
-#endif
-
-	free_mem3d(H);
-	free_mem3d(m1);
-	free_mem3d(m2);
-	free_mem3d(m3);
-	free_mem3d(m4);
-	free_mem3d(m5);
-	free_mem3d(m6);
-
-	free(W);
-
-	rna_seq_free(a);
-	rna_seq_free(b);
-	rna_seq_free(c);
-
-	return 0;
-}
-
-// n: dataset size, passed as an argument so that it is a symbolic
-// parameter in the scop.
-static void kernel_sw3d(int n) {
+// n: dataset size (symbolic parameter), the three sequences have length n.
+// H: scoring cube, m1..m6: best scores ending with each kind of gap.
+// W[k]: penalty of a gap of length k.
+// sab[i][j], sbc[j][l], sac[i][l]: pairwise similarities of a[i], b[j], c[l]
+// (+3 match, -3 mismatch).
+// Loop bounds like k <= min(i, j) are written k <= i && k <= j so that they
+// contain no function or macro call.
+static void kernel_sw3d(int n, int H[NPDP_DIM][NPDP_DIM][NPDP_DIM], int m1[NPDP_DIM][NPDP_DIM][NPDP_DIM], int m2[NPDP_DIM][NPDP_DIM][NPDP_DIM],
+						int m3[NPDP_DIM][NPDP_DIM][NPDP_DIM], int m4[NPDP_DIM][NPDP_DIM][NPDP_DIM], int m5[NPDP_DIM][NPDP_DIM][NPDP_DIM],
+						int m6[NPDP_DIM][NPDP_DIM][NPDP_DIM], int W[NPDP_DIM], int sab[NPDP_DIM][NPDP_DIM], int sbc[NPDP_DIM][NPDP_DIM],
+						int sac[NPDP_DIM][NPDP_DIM]) {
 	int i, j, k, l;
 
 #pragma scop
@@ -103,38 +25,101 @@ static void kernel_sw3d(int n) {
 				// Block S
 				m1[i][j][l] = INT_MIN;
 				for (k = 1; k <= i; k++) {
-					m1[i][j][l] = MAX(m1[i][j][l], H[i - k][j][l] - 2 * W[k]);
+					m1[i][j][l] = NPDP_MAX(m1[i][j][l], H[i - k][j][l] - 2 * W[k]);
 				}
 
 				m2[i][j][l] = INT_MIN;
 				for (k = 1; k <= j; k++) {
-					m2[i][j][l] = MAX(m2[i][j][l], H[i][j - k][l] - 2 * W[k]);
+					m2[i][j][l] = NPDP_MAX(m2[i][j][l], H[i][j - k][l] - 2 * W[k]);
 				}
 
 				m3[i][j][l] = INT_MIN;
 				for (k = 1; k <= l; k++) {
-					m3[i][j][l] = MAX(m3[i][j][l], H[i][j][l - k] - 2 * W[k]);
+					m3[i][j][l] = NPDP_MAX(m3[i][j][l], H[i][j][l - k] - 2 * W[k]);
 				}
 
 				m4[i][j][l] = INT_MIN;
-				for (k = 1; k <= min(i, j); k++) {
-					m4[i][j][l] = MAX(m4[i][j][l], H[i - k][j - k][l] - W[k] + s(a[i], b[j]));
+				for (k = 1; k <= i && k <= j; k++) {
+					m4[i][j][l] = NPDP_MAX(m4[i][j][l], H[i - k][j - k][l] - W[k] + sab[i][j]);
 				}
 
 				m5[i][j][l] = INT_MIN;
-				for (k = 1; k <= min(j, l); k++) {
-					m5[i][j][l] = MAX(m5[i][j][l], H[i][j - k][l - k] - W[k] + s(b[j], c[l]));
+				for (k = 1; k <= j && k <= l; k++) {
+					m5[i][j][l] = NPDP_MAX(m5[i][j][l], H[i][j - k][l - k] - W[k] + sbc[j][l]);
 				}
 
 				m6[i][j][l] = INT_MIN;
-				for (k = 1; k <= min(i, l); k++) {
-					m6[i][j][l] = MAX(m6[i][j][l], H[i - k][j][l - k] - W[k] + s(a[i], c[l]));
+				for (k = 1; k <= i && k <= l; k++) {
+					m6[i][j][l] = NPDP_MAX(m6[i][j][l], H[i - k][j][l - k] - W[k] + sac[i][l]);
 				}
 
-				H[i][j][l] = MAX(0, MAX(H[i - 1][j - 1][l - 1] + s(a[i], b[j]) + s(a[i], c[l]) + s(b[j], c[l]),
-										MAX(m1[i][j][l], MAX(m2[i][j][l], MAX(m3[i][j][l], MAX(m4[i][j][l], MAX(m5[i][j][l], m6[i][j][l])))))));
+				H[i][j][l] = NPDP_MAX(0, NPDP_MAX(H[i - 1][j - 1][l - 1] + sab[i][j] + sac[i][l] + sbc[j][l],
+												  NPDP_MAX(m1[i][j][l], NPDP_MAX(m2[i][j][l], NPDP_MAX(m3[i][j][l], NPDP_MAX(m4[i][j][l], NPDP_MAX(m5[i][j][l], m6[i][j][l])))))));
 			}
 		}
 	}
 #pragma endscop
 }
+
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
+
+	// H is the scoring cube. Local alignment: its three border faces
+	// (index 0 on any axis) are 0 (zero-initialized).
+	int(*H)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m1)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m2)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m3)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m4)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m5)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*m6)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int(*sab)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*sbc)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int(*sac)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int *W = NPDP_ALLOC_1D(int);
+	char *a = NPDP_ALLOC_1D(char);
+	char *b = NPDP_ALLOC_1D(char);
+	char *c = NPDP_ALLOC_1D(char);
+
+	// W is the gap alignment
+	W[0] = 2;
+	for (int i = 1; i <= N; i++)
+		W[i] = i * W[0];
+
+	// Sequences are 1-indexed in the kernel (a[1..N])
+	npdp_rand_seq(a + 1, N);
+	npdp_rand_seq(b + 1, N);
+	npdp_rand_seq(c + 1, N);
+	npdp_build_sim_table(a, b, 3, -3, sab);
+	npdp_build_sim_table(b, c, 3, -3, sbc);
+	npdp_build_sim_table(a, c, 3, -3, sac);
+
+	NPDP_TIMER_START;
+	kernel_sw3d(N, H, m1, m2, m3, m4, m5, m6, W, sab, sbc, sac);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
+
+#ifdef NPDP_DUMP
+	fprintf(stderr, "Matrix H\n");
+	fprintf(stderr, "==================\n");
+	NPDP_DUMP_3D(stderr, H, N, " %d ", int);
+#endif
+
+	free(H);
+	free(m1);
+	free(m2);
+	free(m3);
+	free(m4);
+	free(m5);
+	free(m6);
+	free(sab);
+	free(sbc);
+	free(sac);
+	free(W);
+	free(a);
+	free(b);
+	free(c);
+	return 0;
+}
+#endif // NPDP_NO_MAIN

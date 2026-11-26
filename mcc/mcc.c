@@ -1,32 +1,17 @@
-#include <math.h>
+// McCaskill partition function of an RNA sequence (see README.md).
+
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include <math.h>
 
 #include "mcc.h"
 
-double **Q;
-double **Qbp;
-
-float ERT;
-
-char *RNA; // only ACGU
-
-int paired(int i, int j) {
-	char nt1 = RNA[i];
-	char nt2 = RNA[j];
-	if ((nt1 == 'A' && nt2 == 'U') || (nt1 == 'U' && nt2 == 'A') || (nt1 == 'G' && nt2 == 'C') || (nt1 == 'C' && nt2 == 'G') || (nt1 == 'G' && nt2 == 'U') ||
-		(nt1 == 'U' && nt2 == 'G')) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-// n: dataset size, l: minimum loop length.
-// Passed as arguments so that they are symbolic parameters in the scop.
-static void kernel_mcc(int n, int l) {
+// n: dataset size, l: minimum loop length (symbolic parameters).
+// ert: Boltzmann weight of a base pair, exp(-Ebp/RT).
+// NPDP_PAIRED(x, y) == 1 if nucleotides x and y can pair (function call by
+// default, lookup table with -DNPDP_PAIR_TABLE, see include/mem.h).
+static void kernel_mcc(int n, int l, double ert, double Q[NPDP_DIM][NPDP_DIM], double Qbp[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
 	int i, j, k;
 
 	//  compute the partition functions Q and Qbp
@@ -36,7 +21,7 @@ static void kernel_mcc(int n, int l) {
 			for (j = i + 1; j < n; j++) {
 				Q[i][j] = Q[i][j - 1];
 				for (k = 0; k < j - i - l; k++) {
-					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
+					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ert * NPDP_PAIRED(k + i, j - 1);
 					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
 				}
 			}
@@ -45,41 +30,42 @@ static void kernel_mcc(int n, int l) {
 #pragma endscop
 }
 
-int main(int argc, char *argv[]) {
-	srand(RSEED);
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
 
-	ERT = exp((float)-Ebp / (float)RT);
+	// computed in single precision, as in the original code
+	float ert = exp((float)-NPDP_EBP / (float)NPDP_RT);
 
-	RNA = calloc(DIM, sizeof(unsigned char)); // read from FASTA file
-	rand_seq(RNA, N);
+	char *rna = NPDP_ALLOC_1D(char);
+	double(*Q)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double(*Qbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
 
-	Q = memd();
-	Qbp = memd();
+	npdp_rand_seq(rna, N);
+	npdp_pair_t pair = npdp_pair_init(rna);
 
-	rna_array_init(Q, 0.4, 0.4);
-	rna_array_init(Qbp, 0.5, 0.5);
+	npdp_rna_array_init(Q, 0.4, 0.4);
+	npdp_rna_array_init(Qbp, 0.5, 0.5);
 
-	metrics_start_timer;
-	kernel_mcc(N, MIN_LOOP);
-	metrics_stop_timer;
-	metrics_print_timer;
+	NPDP_TIMER_START;
+	kernel_mcc(N, NPDP_MIN_LOOP, ert, Q, Qbp, pair);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-#ifdef RESULT_DUMP
+#ifdef NPDP_DUMP
 	fprintf(stderr, "DUMPING RESULTS\n");
 	fprintf(stderr, "Array Q\n");
 	fprintf(stderr, "===============\n");
-	rna_array_print(stderr, Q);
+	NPDP_DUMP_UPPER_2D(stderr, Q, N, " %5.3f ", double);
 	fprintf(stderr, "Array Qbp\n");
 	fprintf(stderr, "===============\n");
-	rna_array_print(stderr, Qbp);
+	NPDP_DUMP_UPPER_2D(stderr, Qbp, N, " %5.3f ", double);
 #endif
 
-	//    FILE *f = fopen("client.data", "wb");
-	//    fwrite(Q, sizeof(double), sizeof(double)*DIM*DIM, f);
-
-	free_memd(Q);
-	free_memd(Qbp);
-	free(RNA);
-
+	free(Q);
+	free(Qbp);
+	npdp_pair_free(pair);
+	free(rna);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

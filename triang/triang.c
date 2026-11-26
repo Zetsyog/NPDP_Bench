@@ -1,40 +1,21 @@
+// Minimum cost polygon triangulation (see README.md and Cormen et al.).
+// Accelerating Minimum Cost Polygon Triangulation Code with the TRACO Compiler,
+// Palkowski, Bielecki, FedCSIS 2018: https://annals-csis.org/Volume_17/drp/pdf/8.pdf
 
-// See the Cormen book for details of the following algorithm
-
-// Accelerating Minimum Cost Polygon Triangulation Code with the TRACO Compiler, Palkowski Bielecki FedCsis 2018
-// https://annals-csis.org/Volume_17/drp/pdf/8.pdf
+#include <mem.h>
+#include <metrics.h>
 
 #include <limits.h>
 #include <math.h>
-#include <mem.h>
-#include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-int **points;
-double **table;
-
-// A utility function to find distance between two points in a plane
-double dist(int *p1, int *p2) { return sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])); }
-
-// A utility function to find cost of a triangle. The cost is considered
-// as perimeter (sum of lengths of all edges) of the triangle
-double cost(int i, int j, int k) {
-	int *p1 = points[i];
-	int *p2 = points[j];
-	int *p3 = points[k];
-	return dist(p1, p2) + dist(p2, p3) + dist(p3, p1);
-}
 
 // Minimum cost triangulation of a convex polygon of n vertices.
-// n is passed as an argument so that it is a symbolic parameter in the scop.
-double mcTDP(int n) {
-
-	table = memd();
-
+// n: dataset size (symbolic parameter).
+// table[i][j]: minimum cost to triangulate vertices i..j.
+// D[x][y]: euclidean distance between vertices x and y. The cost of the
+// triangle (i, j, k) is its perimeter D[i][j] + D[j][k] + D[k][i], written
+// inline so that the scop contains no function call.
+static void kernel_triang(int n, double table[NPDP_DIM][NPDP_DIM], double D[NPDP_DIM][NPDP_DIM]) {
 	int j, k, gap;
-
-	metrics_start_timer;
 
 #pragma scop
 	for (gap = 0; gap < n; gap++) {
@@ -45,43 +26,46 @@ double mcTDP(int n) {
 			else {
 				table[j - gap][j] = INT_MAX;
 				for (k = j - gap + 1; k < j; k++) {
-					table[j - gap][j] = MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + cost(j - gap, j, k));
+					table[j - gap][j] = NPDP_MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + (D[j - gap][j] + D[j][k] + D[k][j - gap]));
 				}
 			}
 		}
 	}
 #pragma endscop
-
-	metrics_stop_timer;
-	metrics_print_timer;
-
-	return table[0][n - 1];
 }
 
-int main(int argc, char *argv[]) {
-	points = malloc(DIM * sizeof(int *));
-
-	for (int i = 0; i < DIM; i++)
-		points[i] = malloc(2 * sizeof(int));
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	int(*points)[2] = npdp_xcalloc(NPDP_DIM, sizeof *points);
+	double(*table)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double(*D)[NPDP_DIM] = NPDP_ALLOC_2D(double);
 
 	// Random points
-	srand(RSEED);
-	for (int i = 0; i < DIM; i++) {
+	srand(NPDP_RSEED);
+	for (int i = 0; i < NPDP_DIM; i++) {
 		points[i][0] = rand() % 100;
 		points[i][1] = rand() % 100;
 	}
 
-	double res = mcTDP(N);
+	for (int x = 0; x < NPDP_DIM; x++)
+		for (int y = 0; y < NPDP_DIM; y++) {
+			int dx = points[x][0] - points[y][0];
+			int dy = points[x][1] - points[y][1];
+			D[x][y] = sqrt(dx * dx + dy * dy);
+		}
 
-#ifdef RESULT_DUMP
-	fprintf(stderr, "%f\n", res);
+	NPDP_TIMER_START;
+	kernel_triang(N, table, D);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
+
+#ifdef NPDP_DUMP
+	fprintf(stderr, "%f\n", N > 0 ? table[0][N - 1] : 0.0);
 #endif
 
-	for (int i = 0; i < DIM; i++)
-		free(points[i]);
 	free(points);
-
-	free_memd(table);
-
+	free(table);
+	free(D);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

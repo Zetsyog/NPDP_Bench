@@ -1,39 +1,66 @@
-#ifndef METRICS_H
-#define METRICS_H
+// Kernel timing.
+//
+//   NPDP_TIME              print the kernel execution time (seconds) on stdout
+//   NPDP_FLUSH_CACHE       flush the caches right before starting the timer,
+//                          so that every run starts cold
+//   NPDP_FLUSH_CACHE_SIZE  bytes written/read to flush (default 64 MiB; use
+//                          more than the last level cache)
+//
+// Usage in a benchmark:
+//   NPDP_TIMER_START;
+//   kernel_xxx(N, ...);
+//   NPDP_TIMER_STOP;
+//   NPDP_TIMER_PRINT;
+#ifndef NPDP_METRICS_H
+#define NPDP_METRICS_H
 
 #include <stdio.h>
-#include <sys/time.h>
+#include <stdlib.h>
+#include <time.h>
 
-#define metrics_start_timer
-#define metrics_stop_timer
-#define metrics_print_timer
+#ifdef NPDP_FLUSH_CACHE
+#ifndef NPDP_FLUSH_CACHE_SIZE
+#define NPDP_FLUSH_CACHE_SIZE (64UL * 1024 * 1024)
+#endif
+static inline void npdp_flush_cache(void) {
+	size_t n = NPDP_FLUSH_CACHE_SIZE / sizeof(double);
+	double *buf = calloc(n, sizeof(double));
+	if (buf == NULL)
+		return;
+	for (size_t i = 0; i < n; i++)
+		buf[i] = (double)i;
+	volatile double sum = 0.0;
+	for (size_t i = 0; i < n; i++)
+		sum += buf[i];
+	(void)sum;
+	free(buf);
+}
+#define NPDP_FLUSH() npdp_flush_cache()
+#else
+#define NPDP_FLUSH() ((void)0)
+#endif // NPDP_FLUSH_CACHE
 
-#ifdef METRICS_TIME
-#undef metrics_start_timer
-#undef metrics_stop_timer
-#undef metrics_print_timer
-#define metrics_start_timer _metrics_timer_start();
-#define metrics_stop_timer _metrics_timer_stop();
-#define metrics_print_timer _metrics_timer_print();
-#endif // METRICS_TIME
+#ifdef NPDP_TIME
+static double npdp_t_start, npdp_t_end;
 
-double metric_t_start, metric_t_end;
-
-double rtclock() {
-	struct timezone Tzp;
-	struct timeval Tp;
-	int stat;
-	stat = gettimeofday(&Tp, &Tzp);
-	if (stat != 0)
-		fprintf(stderr, "Error return from gettimeofday: %d", stat);
-
-	return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+// Monotonic wall-clock time in seconds (not affected by clock adjustments).
+static inline double npdp_clock(void) {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (double)ts.tv_sec + (double)ts.tv_nsec * 1.0e-9;
 }
 
-void _metrics_timer_start() { metric_t_start = rtclock(); }
+#define NPDP_TIMER_START                                                                                                                                       \
+	do {                                                                                                                                                       \
+		NPDP_FLUSH();                                                                                                                                          \
+		npdp_t_start = npdp_clock();                                                                                                                           \
+	} while (0)
+#define NPDP_TIMER_STOP (npdp_t_end = npdp_clock())
+#define NPDP_TIMER_PRINT printf("%0.6lf\n", npdp_t_end - npdp_t_start)
+#else
+#define NPDP_TIMER_START NPDP_FLUSH()
+#define NPDP_TIMER_STOP ((void)0)
+#define NPDP_TIMER_PRINT ((void)0)
+#endif // NPDP_TIME
 
-void _metrics_timer_stop() { metric_t_end = rtclock(); }
-
-void _metrics_timer_print() { printf("%0.6lf\n", metric_t_end - metric_t_start); }
-
-#endif // METRICS_H
+#endif // NPDP_METRICS_H

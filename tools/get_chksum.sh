@@ -3,12 +3,12 @@
 # It must be run from inside a benchmark directory (e.g. ./counting).
 # Usage: ./get_chksum.sh [extra_flags] <target>
 #
-# If no -DRSEED=... is given in extra_flags, a fixed seed is used so that
+# If no -DNPDP_RSEED=... is given in extra_flags, a fixed seed is used so that
 # two invocations (e.g. original vs pluto) compute on the same input.
 
 usage() {
     echo "Usage: $0 [extra_flags] <target>" >&2
-    echo "Example: $0 \"-DN=200 -DRSEED=21\" counting_pluto" >&2
+    echo "Example: $0 \"-DN=200 -DNPDP_RSEED=21\" counting_pluto" >&2
     exit 1
 }
 
@@ -26,10 +26,10 @@ if [[ -z "$target" ]]; then
     usage
 fi
 
-if [[ "$EXTRA_FLAGS" != *"-DRSEED"* ]]; then
-    EXTRA_FLAGS="$EXTRA_FLAGS -DRSEED=42"
+if [[ "$EXTRA_FLAGS" != *"-DNPDP_RSEED"* ]]; then
+    EXTRA_FLAGS="$EXTRA_FLAGS -DNPDP_RSEED=42"
 fi
-EXTRA_FLAGS="$EXTRA_FLAGS -DRESULT_DUMP"
+EXTRA_FLAGS="$EXTRA_FLAGS -DNPDP_DUMP"
 
 dump_file=$(mktemp)
 trap 'rm -f "$dump_file"' EXIT

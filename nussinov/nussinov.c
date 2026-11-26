@@ -1,69 +1,58 @@
-// nussinov
+// Nussinov RNA folding: maximum number of base pairs (see README.md).
 
-#define _bench_fp_type long double
+#define NPDP_FP_TYPE long double
 
-#include <math.h>
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
-_bench_fp_type **S;
-char *RNA;
-
-int can_pair(char *input, int a, int b) {
-
-	return ((((input[a] == 'A' && input[b] == 'U') || (input[a] == 'U' && input[b] == 'A') || (input[a] == 'G' && input[b] == 'C') ||
-			  (input[a] == 'C' && input[b] == 'G') || (input[a] == 'G' && input[b] == 'U') || (input[a] == 'U' && input[b] == 'G')))) /* && (a < b - 1))) */
-			   ? 1
-			   : 0;
-}
-
-// n: dataset size, passed as an argument so that it is a symbolic
-// parameter in the scop.
-static void kernel_nussinov(int n) {
+// n: dataset size (symbolic parameter).
+// S[i][j]: maximum number of pairs in the subsequence i..j.
+// NPDP_PAIRED(x, y) == 1 if nucleotides x and y can pair (function call by
+// default, lookup table with -DNPDP_PAIR_TABLE, see include/mem.h).
+static void kernel_nussinov(int n, NPDP_FP_TYPE S[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
 	int i, j, k;
 
 #pragma scop
 	for (i = n - 1; i >= 0; i--) {
-
 		for (j = i + 1; j < n; j++) {
 			for (k = 0; k < j - i; k++) {
-				S[i][j] = MAX(S[i][k + i] + S[k + i + 1][j], S[i][j]);
+				S[i][j] = NPDP_MAX(S[i][k + i] + S[k + i + 1][j], S[i][j]);
 			}
 			for (k = 0; k < 1; k++) {
-				S[i][j] = MAX(S[i][j], S[i + 1][j - 1] + can_pair(RNA, i, j));
+				S[i][j] = NPDP_MAX(S[i][j], S[i + 1][j - 1] + NPDP_PAIRED(i, j));
 			}
 		}
 	}
 #pragma endscop
 }
 
-int main(int argc, char *argv[]) {
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
 
-	S = memd();
-	RNA = rna_seq_alloc();
+	NPDP_FP_TYPE(*S)[NPDP_DIM] = NPDP_ALLOC_2D(NPDP_FP_TYPE);
+	char *rna = NPDP_ALLOC_1D(char);
 
-	srand(RSEED);
-	rand_seq(RNA, N);
+	npdp_rand_seq(rna, N);
+	npdp_pair_t pair = npdp_pair_init(rna);
 
-	metrics_start_timer;
-	kernel_nussinov(N);
-	metrics_stop_timer;
-	metrics_print_timer;
+	NPDP_TIMER_START;
+	kernel_nussinov(N, S, pair);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-#ifdef RESULT_DUMP
+#ifdef NPDP_DUMP
 	fprintf(stderr, "RNA sequence\n");
 	fprintf(stderr, "==================\n");
-	rna_seq_print(stderr, RNA);
+	npdp_dump_seq(stderr, rna, N);
 	fprintf(stderr, "\nArray S\n");
 	fprintf(stderr, "==================\n");
-	darray_print(stderr, S);
+	NPDP_DUMP_2D(stderr, S, N, " %.5f ", double);
 #endif
 
-	rna_seq_free(RNA);
-	free_memd(S);
-
+	free(S);
+	npdp_pair_free(pair);
+	free(rna);
 	return 0;
 }
+#endif // NPDP_NO_MAIN

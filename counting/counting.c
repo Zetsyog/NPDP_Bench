@@ -1,73 +1,58 @@
+// Counting RNA secondary structures (see README.md).
+
 // Values grow exponentially with N: use unsigned arithmetic so overflow
 // wraps around (well defined) instead of being undefined behavior.
-#define _bench_int_type unsigned int
+#define NPDP_INT_TYPE unsigned int
 
 #include <mem.h>
 #include <metrics.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-_bench_int_type **c;
-char *RNA; // only ACGU
-
-int paired(int i, int j) {
-	char nt1 = RNA[i];
-	char nt2 = RNA[j];
-	if ((nt1 == 'A' && nt2 == 'U') || (nt1 == 'U' && nt2 == 'A') || (nt1 == 'G' && nt2 == 'C') || (nt1 == 'C' && nt2 == 'G') || (nt1 == 'G' && nt2 == 'U') ||
-		(nt1 == 'U' && nt2 == 'G')) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-// n: dataset size, l: minimum loop length.
-// Passed as arguments so that they are symbolic parameters in the scop.
-static void kernel_counting(int n, int l) {
+// n: dataset size, l: minimum loop length (symbolic parameters).
+// NPDP_PAIRED(x, y) == 1 if nucleotides x and y can pair (function call by
+// default, lookup table with -DNPDP_PAIR_TABLE, see include/mem.h).
+static void kernel_counting(int n, int l, NPDP_INT_TYPE c[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
 	int i, j, k;
 
 #pragma scop
 	for (i = n - 2; i >= 1; i--) {
 		for (j = i + 2; j <= n; j++) {
 			for (k = i; k <= j - l; k++) {
-				c[i][j] += paired(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
+				c[i][j] += NPDP_PAIRED(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
 			}
 		}
 	}
 #pragma endscop
 }
 
-int main() {
-	srand(RSEED);
+#ifndef NPDP_NO_MAIN
+int main(void) {
+	srand(NPDP_RSEED);
 
-	int i, j;
+	NPDP_INT_TYPE(*c)[NPDP_DIM] = NPDP_ALLOC_2D(NPDP_INT_TYPE);
+	char *rna = NPDP_ALLOC_1D(char);
 
-	// printf(" -exp(Ebp/RT) = %5.3f\n", ERT);
-
-	c = mem();
-
-	for (i = 0; i < DIM; i++) {
-		for (j = 0; j < DIM; j++) {
+	for (int i = 0; i < NPDP_DIM; i++)
+		for (int j = 0; j < NPDP_DIM; j++)
 			c[i][j] = i + j;
-		}
-	}
 
-	RNA = malloc(DIM * sizeof(char)); // read from FASTA file
-	rand_seq(RNA, DIM);
+	npdp_rand_seq(rna, NPDP_DIM);
+	npdp_pair_t pair = npdp_pair_init(rna);
 
-	metrics_start_timer;
-	kernel_counting(N, 0);
-	metrics_stop_timer;
-	metrics_print_timer;
+	NPDP_TIMER_START;
+	kernel_counting(N, 0, c, pair);
+	NPDP_TIMER_STOP;
+	NPDP_TIMER_PRINT;
 
-#ifdef RESULT_DUMP
+#ifdef NPDP_DUMP
 	fprintf(stderr, "DUMPING RESULTS\n");
 	fprintf(stderr, "Array Q\n");
 	fprintf(stderr, "===============\n");
-	array_print(stderr, c);
+	NPDP_DUMP_2D(stderr, c, N, " %lld ", long long);
 #endif
 
-	free_mem(c);
-	free(RNA);
+	free(c);
+	npdp_pair_free(pair);
+	free(rna);
 	return 0;
 }
+#endif // NPDP_NO_MAIN
