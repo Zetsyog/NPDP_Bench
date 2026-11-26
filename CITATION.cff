@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software in your research, please cite it using the
+  metadata below, and cite the original NPDP Bench listed in references.
+title: "NPDP Bench: non-serial polyadic dynamic programming benchmarks for polyhedral compilers"
+abstract: >-
+  Twelve non-serial polyadic dynamic programming (NPDP) kernels (RNA folding,
+  sequence alignment, matrix chain multiplication, optimal binary search
+  trees, polygon triangulation) written as static control parts with
+  contiguous arrays, symbolic size parameters and no function calls, to
+  evaluate automatic source-to-source optimizing compilers (Pluto, PPCG, ...)
+  and manual transformations. Includes correctness tests, reference checksums
+  and a benchmarking driver.
+type: software
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/Zetsyog/NPDP_Bench"
+authors:
+  # TODO: complete the full name and add an ORCID if you have one.
+  - name: "Clément R"
+keywords:
+  - polyhedral compilation
+  - loop tiling
+  - dynamic programming
+  - NPDP
+  - benchmark
+  - OpenMP
+references:
+  - type: software
+    title: "NPDP Bench"
+    authors:
+      - name: "Marek Palkowski"
+    repository-code: "https://github.com/markpal/NPDP_Bench"
+    license: MIT
+    notes: >-
+      Original NPDP benchmark codes this work is derived from
+      (kept unmodified in the input/ directory).
