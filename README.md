@@ -43,13 +43,13 @@ Each benchmark directory has a Makefile (see [common.mk](common.mk)) with these 
 - `<bench>_pluto`: the Pluto-optimized program. `<bench>.pluto.c` is generated with `$PLUTO` (`--tile --parallel`, plus any per-benchmark `PLUTO_EXTRA_FLAGS`).
 - `clean`: remove the binaries and generated sources.
 
-Variables: `EXTRA_FLAGS` (macros below), `CFLAGS` (default `-march=native -O3 -fopenmp -ffp-contract=off`), `PLUTO`, `PLUTO_FLAGS`, `PLUTO_EXTRA_FLAGS`. The top-level Makefile provides `all` (every original program), `test`, `golden` and `clean`.
+Variables: `EXTRA_FLAGS` (macros below), `CFLAGS` (default `-march=native -O3 -fopenmp -ffp-contract=off`), `PLUTO`, `PLUTO_FLAGS`, `PLUTO_EXTRA_FLAGS`. The top-level Makefile provides `all` (every original program), `test`, `golden`, `format`, `format-check` and `clean`.
 
 Keep `-ffp-contract=off`. Without it, the compiler fuses `a*b+c` into FMA instructions wherever it can. That changes the floating-point results of `mcc` and `mea` depending on how the loops are written, so original and transformed results would not match.
 
 ### Nix
 
-`nix develop` provides gcc (OpenMP), make, bc, valgrind and gdb. It keeps `-march=native` and disables the Nix compiler-wrapper hardening flags, so builds match a regular toolchain. Pluto is not packaged in nixpkgs: set `PLUTO` yourself.
+`nix develop` provides gcc (OpenMP), make, bc, clang-format, valgrind and gdb. It keeps `-march=native` and disables the Nix compiler-wrapper hardening flags, so builds match a regular toolchain. Pluto is not packaged in nixpkgs: set `PLUTO` yourself.
 
 ## Configuration macros
 
@@ -99,6 +99,8 @@ Shared helpers are in [include/mem.h](include/mem.h) and [include/metrics.h](inc
 6. **Valgrind:** no invalid or uninitialized memory accesses (skipped if valgrind is not installed).
 
 `make golden` regenerates the reference checksums. Only run it when a change of results is intended, and review the diff.
+
+Sources follow [.clang-format](.clang-format): `make format` reformats them, `make format-check` (also run by `nix flake check`) fails on any unformatted file.
 
 ## Running experiments
 

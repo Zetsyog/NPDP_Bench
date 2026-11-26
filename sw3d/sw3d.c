@@ -53,8 +53,10 @@ static void kernel_sw3d(int n, int H[NPDP_DIM][NPDP_DIM][NPDP_DIM], int m1[NPDP_
 					m6[i][j][l] = NPDP_MAX(m6[i][j][l], H[i - k][j][l - k] - W[k] + sac[i][l]);
 				}
 
-				H[i][j][l] = NPDP_MAX(0, NPDP_MAX(H[i - 1][j - 1][l - 1] + sab[i][j] + sac[i][l] + sbc[j][l],
-												  NPDP_MAX(m1[i][j][l], NPDP_MAX(m2[i][j][l], NPDP_MAX(m3[i][j][l], NPDP_MAX(m4[i][j][l], NPDP_MAX(m5[i][j][l], m6[i][j][l])))))));
+				H[i][j][l] = NPDP_MAX(
+					0,
+					NPDP_MAX(H[i - 1][j - 1][l - 1] + sab[i][j] + sac[i][l] + sbc[j][l],
+							 NPDP_MAX(m1[i][j][l], NPDP_MAX(m2[i][j][l], NPDP_MAX(m3[i][j][l], NPDP_MAX(m4[i][j][l], NPDP_MAX(m5[i][j][l], m6[i][j][l])))))));
 			}
 		}
 	}
@@ -67,16 +69,16 @@ int main(void) {
 
 	// H is the scoring cube. Local alignment: its three border faces
 	// (index 0 on any axis) are 0 (zero-initialized).
-	int(*H)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m1)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m2)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m3)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m4)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m5)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*m6)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
-	int(*sab)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*sbc)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*sac)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*H)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m1)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m2)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m3)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m4)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m5)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*m6)[NPDP_DIM][NPDP_DIM] = NPDP_ALLOC_3D(int);
+	int (*sab)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*sbc)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*sac)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 	int *W = NPDP_ALLOC_1D(int);
 	char *a = NPDP_ALLOC_1D(char);
 	char *b = NPDP_ALLOC_1D(char);
@@ -84,8 +86,9 @@ int main(void) {
 
 	// W is the gap alignment
 	W[0] = 2;
-	for (int i = 1; i <= N; i++)
+	for (int i = 1; i <= N; i++) {
 		W[i] = i * W[0];
+	}
 
 	// Sequences are 1-indexed in the kernel (a[1..N])
 	npdp_rand_seq(a + 1, N);

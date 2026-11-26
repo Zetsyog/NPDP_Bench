@@ -90,16 +90,17 @@ int main(void) {
 
 #ifdef NPDP_DUMP
 	fprintf(stderr, "Sequence: ");
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < N; i++) {
 		fprintf(stderr, "%c", rna[i]);
+	}
 	fprintf(stderr, "\n\n");
 #endif
 
-	double(*Q)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*Qbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*Pbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*Pu)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*M)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Q)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Qbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Pbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Pu)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*M)[NPDP_DIM] = NPDP_ALLOC_2D(double);
 	double *Puu = NPDP_ALLOC_1D(double);
 
 	npdp_pair_t pair = npdp_pair_init(rna);
@@ -129,8 +130,9 @@ int main(void) {
 	NPDP_DUMP_UPPER_2D(stderr, Pu, N, " %5.3f ", double);
 
 	fprintf(stderr, "Puu\n");
-	for (int i = 0; i < N - 1; i++)
+	for (int i = 0; i < N - 1; i++) {
 		fprintf(stderr, "%3.3f ", Puu[i]);
+	}
 	fprintf(stderr, "\n");
 
 	fprintf(stderr, "M\n");

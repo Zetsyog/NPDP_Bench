@@ -13,12 +13,14 @@
 // default, lookup table with -DNPDP_PAIR_TABLE, see include/mem.h).
 static void kernel_counting_im(int n, NPDP_INT_TYPE c[NPDP_DIM][NPDP_DIM], NPDP_PAIR_PARAM) {
 #pragma scop
-	for (int i = n - 2; i >= 1; i--)
+	for (int i = n - 2; i >= 1; i--) {
 		for (int j = i + 2; j <= n; j++) {
-			for (int k = i; k <= j - 1; k++)
+			for (int k = i; k <= j - 1; k++) {
 				c[i][j] += NPDP_PAIRED(k, j) ? c[i][k - 1] + c[k + 1][j - 1] : 0;
+			}
 			c[i][j] = c[i][j] + c[i][j - 1];
 		}
+	}
 #pragma endscop
 }
 
@@ -29,9 +31,11 @@ int main(void) {
 	NPDP_INT_TYPE(*c)[NPDP_DIM] = NPDP_ALLOC_2D(NPDP_INT_TYPE);
 	char *rna = NPDP_ALLOC_1D(char);
 
-	for (int i = 0; i < NPDP_DIM; i++)
-		for (int j = 0; j < NPDP_DIM; j++)
+	for (int i = 0; i < NPDP_DIM; i++) {
+		for (int j = 0; j < NPDP_DIM; j++) {
 			c[i][j] = i + j;
+		}
+	}
 
 	npdp_rand_seq(rna, NPDP_DIM);
 	npdp_pair_t pair = npdp_pair_init(rna);

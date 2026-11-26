@@ -125,22 +125,26 @@ static inline void *npdp_xcalloc(size_t nmemb, size_t size) {
 // Fill a[0..n-1] with random nucleotides from {A, G, C, U}.
 static inline void npdp_rand_seq(char *a, int n) {
 	static const char nt[4] = {'A', 'G', 'C', 'U'};
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < n; i++) {
 		a[i] = nt[rand() % 4];
+	}
 }
 
 // Print the first n characters of a sequence.
 static inline void npdp_dump_seq(FILE *fp, const char *a, int n) {
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < n; i++) {
 		fprintf(fp, " %c ", a[i]);
+	}
 	fprintf(fp, "\n");
 }
 
 // RNA matrices: S[i][j] = def on the diagonal and first row, def2 elsewhere.
 static inline void npdp_rna_array_init(double S[][NPDP_DIM], double def, double def2) {
-	for (int i = 0; i <= N + 5; i++)
-		for (int j = 0; j <= N + 5; j++)
+	for (int i = 0; i <= N + 5; i++) {
+		for (int j = 0; j <= N + 5; j++) {
 			S[i][j] = (i == j || i == 0) ? def : def2;
+		}
+	}
 }
 
 // 1 if nucleotides x and y can form a base pair (Watson-Crick or G-U wobble).
@@ -152,9 +156,11 @@ static inline int npdp_can_pair(char x, char y) {
 // pair[x][y] = npdp_can_pair(seq[x], seq[y]) for the whole NPDP_DIM extent.
 // Replaces a function call in the kernels by an affine array read.
 static inline void npdp_build_pair_table(const char *seq, int pair[][NPDP_DIM]) {
-	for (int x = 0; x < NPDP_DIM; x++)
-		for (int y = 0; y < NPDP_DIM; y++)
+	for (int x = 0; x < NPDP_DIM; x++) {
+		for (int y = 0; y < NPDP_DIM; y++) {
 			pair[x][y] = npdp_can_pair(seq[x], seq[y]);
+		}
+	}
 }
 
 // 1 if nucleotides seq[x] and seq[y] can pair: the paired()/can_pair()
@@ -194,9 +200,11 @@ static inline void npdp_pair_free(npdp_pair_t pair) { (void)pair; }
 
 // sim[x][y] = match if a[x] == b[y], mismatch otherwise (alignment scores).
 static inline void npdp_build_sim_table(const char *a, const char *b, int match, int mismatch, int sim[][NPDP_DIM]) {
-	for (int x = 0; x < NPDP_DIM; x++)
-		for (int y = 0; y < NPDP_DIM; y++)
+	for (int x = 0; x < NPDP_DIM; x++) {
+		for (int y = 0; y < NPDP_DIM; y++) {
 			sim[x][y] = (a[x] == b[y]) ? match : mismatch;
+		}
+	}
 }
 
 #endif // NPDP_MEM_H

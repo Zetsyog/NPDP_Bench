@@ -33,11 +33,12 @@ int main(void) {
 	srand(NPDP_RSEED);
 
 	int *p = NPDP_ALLOC_1D(int);
-	int(*m)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*s)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*m)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*s)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < N; i++) {
 		p[i] = (rand() % 20) + 1;
+	}
 
 	// cost is zero when multiplying one matrix (m is zero-initialized).
 	NPDP_TIMER_START;

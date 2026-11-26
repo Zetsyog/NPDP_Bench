@@ -31,8 +31,8 @@ static void run(void) {
 	static const int dims[] = {30, 35, 15, 5, 10, 20, 25};
 	int n = 7;
 	int *p = NPDP_ALLOC_1D(int);
-	int(*m)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*s)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*m)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*s)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 	memcpy(p, dims, sizeof dims);
 
 	kernel_mcm(n, m, s, p);
@@ -83,16 +83,17 @@ static void run(void) {
 // Align a and b (same length), return the bottom-right score.
 static int align(const char *sa, const char *sb) {
 	int n = (int)strlen(sa);
-	int(*F)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*m1)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*m2)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*sim)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*F)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*m1)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*m2)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*sim)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 	int *W = NPDP_ALLOC_1D(int);
 	char *a = NPDP_ALLOC_1D(char);
 	char *b = NPDP_ALLOC_1D(char);
 	W[0] = 2;
-	for (int i = 1; i <= n; i++)
+	for (int i = 1; i <= n; i++) {
 		W[i] = i * W[0];
+	}
 #if defined(TEST_NW)
 	for (int i = 1; i <= n; i++) {
 		F[i][0] = -W[i];
@@ -132,14 +133,15 @@ static void run(void) {
 // Square of side 10: two triangles of perimeter 10 + 10 + 10*sqrt(2).
 static void run(void) {
 	static const int pts[4][2] = {{0, 0}, {10, 0}, {10, 10}, {0, 10}};
-	double(*table)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*D)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	for (int x = 0; x < 4; x++)
+	double (*table)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*D)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	for (int x = 0; x < 4; x++) {
 		for (int y = 0; y < 4; y++) {
 			int dx = pts[x][0] - pts[y][0];
 			int dy = pts[x][1] - pts[y][1];
 			D[x][y] = sqrt(dx * dx + dy * dy);
 		}
+	}
 	kernel_triang(4, table, D);
 	double expected = 40.0 + 20.0 * sqrt(2.0);
 	CHECK(fabs(table[0][3] - expected) < 1e-9, "triang: square = %.12f, expected %.12f", table[0][3], expected);
@@ -153,7 +155,8 @@ static void run(void) {
 
 int main(void) {
 	run();
-	if (failures == 0)
+	if (failures == 0) {
 		printf("ok\n");
+	}
 	return failures == 0 ? 0 : 1;
 }

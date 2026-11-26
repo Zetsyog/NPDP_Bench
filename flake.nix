@@ -18,6 +18,7 @@
           # stdenv already provides gcc (with OpenMP), make, coreutils, awk, sed
           packages = with pkgs; [
             bc # used by tools/finetune_pluto.sh
+            clang-tools # clang-format, for make format / format-check
             valgrind
             gdb
           ];
@@ -39,7 +40,8 @@
         };
       });
 
-      # `nix flake check` runs the test suite (tests/run_tests.sh); used by CI.
+      # `nix flake check` runs the test suite (tests/run_tests.sh) and the
+      # clang-format check; used by CI.
       checks = forAllSystems (pkgs: {
         default = pkgs.stdenv.mkDerivation {
           name = "npdp-bench-tests";
@@ -58,6 +60,13 @@
           '';
           installPhase = "touch $out";
         };
+
+        # Sources must match .clang-format (fix with `make format`).
+        format = pkgs.runCommand "npdp-bench-format" { nativeBuildInputs = [ pkgs.clang-tools ]; } ''
+          cd ${self}
+          make format-check
+          touch $out
+        '';
       });
     };
 }

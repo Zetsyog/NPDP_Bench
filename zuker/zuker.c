@@ -14,12 +14,14 @@ static void kernel_zuker(int n, int W[NPDP_DIM][NPDP_DIM], int V[NPDP_DIM][NPDP_
 		for (j = i + 1; j < n; j++) {
 			for (k = i + 1; k < j; k++) {
 				for (m = k + 1; m < j; m++) {
-					if (k - i + j - m > 2 && k - i + j - m < 30)
+					if (k - i + j - m > 2 && k - i + j - m < 30) {
 						V[i][j] = NPDP_MIN(V[k][m] + EFL[i][j], V[i][j]);
+					}
 				}
 				W[i][j] += NPDP_MIN(NPDP_MIN(W[i][k], W[k + 1][j]), W[i][j]);
-				if (k < j - 1)
+				if (k < j - 1) {
 					V[i][j] = NPDP_MIN(W[i + 1][k] + W[k + 1][j - 1], V[i][j]);
+				}
 			}
 			V[i][j] = NPDP_MIN(NPDP_MIN(V[i + 1][j - 1], EHF[i][j]), V[i][j]);
 			W[i][j] = NPDP_MIN(NPDP_MIN(NPDP_MIN(W[i + 1][j], W[i][j - 1]), V[i][j]), W[i][j]);
@@ -30,10 +32,10 @@ static void kernel_zuker(int n, int W[NPDP_DIM][NPDP_DIM], int V[NPDP_DIM][NPDP_
 
 #ifndef NPDP_NO_MAIN
 int main(void) {
-	int(*W)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*V)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*EFL)[NPDP_DIM] = NPDP_ALLOC_2D(int);
-	int(*EHF)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*W)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*V)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*EFL)[NPDP_DIM] = NPDP_ALLOC_2D(int);
+	int (*EHF)[NPDP_DIM] = NPDP_ALLOC_2D(int);
 
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {

@@ -38,8 +38,8 @@ int main(void) {
 	float ert = exp((float)-NPDP_EBP / (float)NPDP_RT);
 
 	char *rna = NPDP_ALLOC_1D(char);
-	double(*Q)[NPDP_DIM] = NPDP_ALLOC_2D(double);
-	double(*Qbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Q)[NPDP_DIM] = NPDP_ALLOC_2D(double);
+	double (*Qbp)[NPDP_DIM] = NPDP_ALLOC_2D(double);
 
 	npdp_rand_seq(rna, N);
 	npdp_pair_t pair = npdp_pair_init(rna);

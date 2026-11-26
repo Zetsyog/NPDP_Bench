@@ -25,13 +25,16 @@
 static inline void npdp_flush_cache(void) {
 	size_t n = NPDP_FLUSH_CACHE_SIZE / sizeof(double);
 	double *buf = calloc(n, sizeof(double));
-	if (buf == NULL)
+	if (buf == NULL) {
 		return;
-	for (size_t i = 0; i < n; i++)
+	}
+	for (size_t i = 0; i < n; i++) {
 		buf[i] = (double)i;
+	}
 	volatile double sum = 0.0;
-	for (size_t i = 0; i < n; i++)
+	for (size_t i = 0; i < n; i++) {
 		sum += buf[i];
+	}
 	(void)sum;
 	free(buf);
 }
