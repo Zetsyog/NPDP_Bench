@@ -25,3 +25,7 @@ zuker/zuker
 tile.sizes
 __temp_dump
 ____*.tmp
+
+# env
+.envrc
+.direnv

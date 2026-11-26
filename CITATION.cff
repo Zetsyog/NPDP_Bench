@@ -16,8 +16,9 @@ version: 0.1.0
 license: MIT
 repository-code: "https://github.com/Zetsyog/NPDP_Bench"
 authors:
-  # TODO: complete the full name and add an ORCID if you have one.
-  - name: "Clément R"
+  - family-names: "Rossetti"
+    given-names: "Clément"
+    orcid: "https://orcid.org/0009-0002-3495-5641"
 keywords:
   - polyhedral compilation
   - loop tiling
