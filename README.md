@@ -6,6 +6,17 @@ Non-serial polyadic dynamic programming benchmarks (NPDP Bench) to test automati
 
 The `PLUTO` env variable should be set to allow make to generate pluto source files.
 
+### Nix
+
+A dev shell with gcc (OpenMP), make, bc, valgrind and gdb is provided:
+
+```bash
+nix develop
+export PLUTO=/path/to/polycc   # Pluto is not packaged in nixpkgs
+```
+
+The shell disables the nix compiler wrapper hardening flags and keeps `-march=native`, so that builds match a regular toolchain.
+
 ## Utilities
 
 Files ending with .pluto.c should be generated and not included in this repository.
