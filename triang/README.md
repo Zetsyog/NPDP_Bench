@@ -17,16 +17,18 @@ The table is filled by increasing `gap = j - i`.
 ```c
 static void kernel_triang(int n, double table[NPDP_DIM][NPDP_DIM], double D[NPDP_DIM][NPDP_DIM]) {
 #pragma scop
+	// initialization
 	for (gap = 0; gap < n; gap++)
-		for (j = gap; j < n; j++) {            // i = j - gap
+		for (j = gap; j < n; j++)              // i = j - gap
 			if (gap < 2)
 				table[j - gap][j] = 0.0;
-			else {
+			else
 				table[j - gap][j] = INT_MAX;
-				for (k = j - gap + 1; k < j; k++)
-					table[j - gap][j] = NPDP_MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + (D[j - gap][j] + D[j][k] + D[k][j - gap]));
-			}
-		}
+	// computation: perfect nest, single statement
+	for (gap = 2; gap < n; gap++)
+		for (j = gap; j < n; j++)
+			for (k = j - gap + 1; k < j; k++)
+				table[j - gap][j] = NPDP_MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + (D[j - gap][j] + D[j][k] + D[k][j - gap]));
 #pragma endscop
 }
 ```
@@ -38,7 +40,7 @@ static void kernel_triang(int n, double table[NPDP_DIM][NPDP_DIM], double D[NPDP
 
 ## Characteristics
 
-- **Loop nest:** 3 loops, 3 statements, under an affine conditional on `gap`.
+- **Loop nests:** 2. A 2D initialization nest (2 statements under an affine conditional on `gap`), then a perfect 3D nest with a single statement.
 - **Cost:** O(n³) time, 2 `double` arrays of `(n+10)²` elements.
 - **Parameters:** `n`.
 - **Iteration order:** the loops iterate over diagonals (`gap`), and the access functions are skewed (`table[j-gap][...]`).
@@ -56,6 +58,7 @@ The optimal cost `table[0][n-1]`.
 ## Differences from the original
 
 - **Point initialization:** upstream never initialized the points (valgrind reported uninitialized reads).
+- **Initialization split:** the original initialized `table[j-gap][j]` inside the `gap`/`j` loops, just before the `k` loop. This made the nest imperfect and hard for polyhedral compilers. The initialization is now a separate nest, and the computation is a perfect nest with a single statement. Upstream used this same form to generate the tiled codes in the appendix. Results are bit-identical, because the first `MIN(INT_MAX, x)` returns `x`.
 - **No function call:** `cost(i, j, k)` called `dist()` three times inside the scop. A 3D cost table would be too large, so the cost is written inline as three reads of the precomputed distance matrix `D`. The summation order is unchanged, so results are bit-identical.
 
 ## Validation
@@ -76,7 +79,7 @@ These tiled versions of the original kernel come from the upstream `info.txt`. T
 - **TS:** TRACO, tile skewing.
 - **PLT:** Pluto.
 
-They are kept for reference only: they were not tested against this version.
+The kernel now has the same split structure, but they are kept for reference only: they were not tested against this version.
 
 <details>
 <summary>Initialization split and tiled codes</summary>

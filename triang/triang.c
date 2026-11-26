@@ -17,17 +17,22 @@
 static void kernel_triang(int n, double table[NPDP_DIM][NPDP_DIM], double D[NPDP_DIM][NPDP_DIM]) {
 	int j, k, gap;
 
+// The initialization is split from the computation so that the computation
+// is a perfect loop nest with a single statement.
 #pragma scop
 	for (gap = 0; gap < n; gap++) {
-		for (j = gap; j < n; j++) // i = j - gap
-		{
+		for (j = gap; j < n; j++) { // i = j - gap
 			if (gap < 2) {
 				table[j - gap][j] = 0.0;
 			} else {
 				table[j - gap][j] = INT_MAX;
-				for (k = j - gap + 1; k < j; k++) {
-					table[j - gap][j] = NPDP_MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + (D[j - gap][j] + D[j][k] + D[k][j - gap]));
-				}
+			}
+		}
+	}
+	for (gap = 2; gap < n; gap++) {
+		for (j = gap; j < n; j++) {
+			for (k = j - gap + 1; k < j; k++) {
+				table[j - gap][j] = NPDP_MIN(table[j - gap][j], table[j - gap][k] + table[k][j] + (D[j - gap][j] + D[j][k] + D[k][j - gap]));
 			}
 		}
 	}
