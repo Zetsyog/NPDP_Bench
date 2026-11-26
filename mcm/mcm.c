@@ -51,7 +51,10 @@ int MatrixChainOrder(int p[], int n) {
 	metrics_stop_timer;
 	metrics_print_timer;
 
-	return m[1][n - 1];
+	int res = m[1][n - 1];
+	free_mem(m);
+	free_mem(s);
+	return res;
 }
 
 int main(int argc, char *argv[]) {
@@ -69,5 +72,6 @@ int main(int argc, char *argv[]) {
 #ifdef RESULT_DUMP
 	fprintf(stderr, "Minimum number of multiplications is %d \n", res);
 #endif
+	free(p);
 	return 0;
 }

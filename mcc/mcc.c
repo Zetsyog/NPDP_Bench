@@ -11,7 +11,7 @@ double **Qbp;
 
 float ERT;
 
-unsigned char *RNA; // only ACGU
+char *RNA; // only ACGU
 
 int paired(int i, int j) {
 	char nt1 = RNA[i];

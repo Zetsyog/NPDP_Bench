@@ -15,12 +15,12 @@ int ***m5;
 int ***m6;
 
 int *W;
-unsigned char *a;
-unsigned char *b;
-unsigned char *c;
+char *a;
+char *b;
+char *c;
 
 // Similarity score of the elements that constituted the two sequences
-int s(unsigned char x, unsigned char z) { return (x == z) ? 3 : -3; }
+int s(char x, char z) { return (x == z) ? 3 : -3; }
 
 int main(int argc, char *argv[]) {
 	srand(RSEED);
@@ -41,10 +41,14 @@ int main(int argc, char *argv[]) {
 	b = rna_seq_alloc();
 	c = rna_seq_alloc();
 
+	// The kernel reads the three border faces (index 0 on any axis),
+	// so all of them must be initialized, not just the three edges.
 	for (i = 0; i <= N; i++) {
-		H[i][0][0] = 0;
-		H[0][i][0] = 0;
-		H[0][0][i] = 0;
+		for (j = 0; j <= N; j++) {
+			H[i][j][0] = 0;
+			H[i][0][j] = 0;
+			H[0][i][j] = 0;
+		}
 	}
 
 	// W is the gap alignment
@@ -52,9 +56,10 @@ int main(int argc, char *argv[]) {
 	for (i = 1; i <= N; i++)
 		W[i] = i * W[0];
 
-	rand_seq(a, N);
-	rand_seq(b, N);
-	rand_seq(c, N);
+	// Sequences are 1-indexed in the kernel (a[1..N])
+	rand_seq(a + 1, N);
+	rand_seq(b + 1, N);
+	rand_seq(c + 1, N);
 
 	metrics_start_timer;
 #pragma scop

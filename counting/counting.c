@@ -1,11 +1,13 @@
-// set check to 0 to measure time, set to 1 to check validity
+// Values grow exponentially with N: use unsigned arithmetic so overflow
+// wraps around (well defined) instead of being undefined behavior.
+#define _bench_int_type unsigned int
 
 #include <mem.h>
 #include <metrics.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-int **c;
+_bench_int_type **c;
 char *RNA; // only ACGU
 
 int paired(int i, int j) {

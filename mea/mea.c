@@ -64,14 +64,16 @@ int main(int argc, char *argv[]) {
 
 	//  compute the partition functions Q and Qbp
 
-	metrics_start_timer
+	metrics_start_timer;
 #pragma scop
-		if (N >= 1 && l >= 0 && l <= 5) for (i = N - 1; i >= 0; i--) {
-		for (j = i + 1; j < N; j++) {
-			Q[i][j] = Q[i][j - 1];
-			for (k = 0; k < j - i - l; k++) {
-				Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
-				Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
+	if (N >= 1 && l >= 0 && l <= 5) {
+		for (i = N - 1; i >= 0; i--) {
+			for (j = i + 1; j < N; j++) {
+				Q[i][j] = Q[i][j - 1];
+				for (k = 0; k < j - i - l; k++) {
+					Qbp[k + i][j] = Q[k + i + 1][j - 1] * ERT * paired(k + i, j - 1);
+					Q[i][j] += Q[i][k + i] * Qbp[k + i][j];
+				}
 			}
 		}
 	}
@@ -111,7 +113,9 @@ int main(int argc, char *argv[]) {
 	for (i = N - 1; i >= 0; i--) {
 		for (j = i + 1; j < N; j++) {
 			for (k = 0; k < j - i - l; k++) {
-				M[i][j] = MAX(M[i][j], M[i][k + i - 1] + M[k + i + 1][j - 1] + delta * Pbp[k + i][j]) * paired(k + i, j - 1);
+				// k == 0 would read M[i][i-1], i.e. M[0][-1] when i == 0 (out of bounds in the
+				// original code). The lower triangle is 0, so use 0 for that term.
+				M[i][j] = MAX(M[i][j], (k > 0 ? M[i][k + i - 1] : 0) + M[k + i + 1][j - 1] + delta * Pbp[k + i][j]) * paired(k + i, j - 1);
 			}
 			M[i][j] = MAX(M[i][j], M[i][j - 1] + Puu[j - 1]);
 		}

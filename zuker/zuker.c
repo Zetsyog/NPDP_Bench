@@ -9,9 +9,6 @@ int **W;
 int **V;
 int **EFL;
 int **EHF;
-int **VMI;
-int **VBI;
-int **WZ;
 
 int main(int argc, char *argv[]) {
 	int i, j, k, m;
@@ -20,9 +17,6 @@ int main(int argc, char *argv[]) {
 	V = mem();
 	EFL = mem();
 	EHF = mem();
-	VMI = mem();
-	VBI = mem();
-	WZ = mem();
 
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++) {
@@ -69,9 +63,6 @@ int main(int argc, char *argv[]) {
 	free_mem(V);
 	free_mem(EFL);
 	free_mem(EHF);
-	free_mem(VMI);
-	free_mem(VBI);
-	free_mem(WZ);
 
 	return 0;
 }

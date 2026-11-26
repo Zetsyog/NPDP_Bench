@@ -1,13 +1,16 @@
 // codes corrected by Piotr Blaszynski
 
+// Values grow exponentially with N: use unsigned arithmetic so overflow
+// wraps around (well defined) instead of being undefined behavior.
+#define _bench_int_type unsigned int
+
+#include <mem.h>
 #include <metrics.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-int **c;
+_bench_int_type **c;
 char *RNA; // only ACGU
-
-#include "mem.h"
 
 int paired(int i, int j) {
 	char nt1 = RNA[i];
@@ -35,7 +38,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	RNA = (char *)malloc(DIM * sizeof(char *)); // read from FASTA file
+	RNA = malloc(DIM * sizeof(char)); // read from FASTA file
 	rand_seq(RNA, DIM);
 
 	metrics_start_timer;

@@ -36,6 +36,11 @@ if [ -z ${PLUTO_EXTRA_FLAGS+x} ]; then
     exit 1
 fi
 
+if [[ "$PLUTO_EXTRA_FLAGS" != *"--tile"* ]]; then
+    log "PLUTO_EXTRA_FLAGS must contain --tile, otherwise tile.sizes is ignored"
+    exit 1
+fi
+
 # Tile sizes
 if [ -z ${TILESIZE_LVL_1+x} ]; then
     log "TILESIZE_LVL_1 is not set"
@@ -66,6 +71,11 @@ if [ -z ${INCLUDE_DIR+x} ]; then
     exit 1
 fi
 
+if [ -z ${NB_RUNS+x} ]; then
+    log "NB_RUNS is not set"
+    exit 1
+fi
+
 if [ -z ${NB_MEDIAN_RUNS+x} ]; then
     log "NB_MEDIAN_RUNS is not set"
     exit 1
@@ -90,7 +100,6 @@ if [[ -f $CSV_OUTPUT ]]; then
         exit 1
     else
         log "Output directory already contains result file. Overriding."
-        echo "" >"$CSV_OUTPUT"
     fi
 fi
 
@@ -98,7 +107,6 @@ echo "DIV1,DIV2,DIV3,EXEC_TYPE,THREAD_NB,TIME,DATASET_SIZE,CONFIG,CFLAGS,EXTRA_F
 log "==============================="
 log "Finetuning $SOURCE"
 log "==============================="
-log "Polybench dir is $POLYBENCH_DIR"
 log "Configuration name $CONFIG"
 log "CONFIG DUMP"
 log "==============================="
@@ -166,7 +174,7 @@ for d1 in ${TILESIZE_LVL_1}; do
             fi
             log ""
 
-            echo "$d1,$d2,$d3,$src_name,$thread_nb,$exec_time,$DATASET_SIZE,$CONFIG,$CFLAGS,$EXTRA_FLAGS,$std_dev" >>$CSV_OUTPUT
+            echo "$d1,$d2,$d3,$BENCH_NAME,$OMP_NUM_THREADS,$exec_time,$DATASET_SIZE,$CONFIG,$CFLAGS,$EXTRA_FLAGS,$std_dev" >>$CSV_OUTPUT
 
         done
     done

@@ -9,11 +9,11 @@ int **m1;
 int **m2;
 
 int *W;
-unsigned char *a;
-unsigned char *b;
+char *a;
+char *b;
 
 // Similarity score of the elements that constituted the two sequences
-int s(unsigned char x, unsigned char z) { return (x == z) ? 1 : -1; }
+int s(char x, char z) { return (x == z) ? 1 : -1; }
 
 int main(int argc, char *argv[]) {
 	srand(RSEED);
@@ -30,18 +30,22 @@ int main(int argc, char *argv[]) {
 	a = rna_seq_alloc();
 	b = rna_seq_alloc();
 
-	for (i = 0; i <= N; i++) {
-		F[i][0] = 0;
-		F[0][i] = 0;
-	}
-
 	// W is the gap alignment
 	W[0] = 2;
 	for (i = 1; i <= N; i++)
 		W[i] = i * W[0];
 
-	rand_seq(a, N);
-	rand_seq(b, N);
+	// Global alignment: aligning a prefix against the empty sequence
+	// costs a gap of that length.
+	F[0][0] = 0;
+	for (i = 1; i <= N; i++) {
+		F[i][0] = -W[i];
+		F[0][i] = -W[i];
+	}
+
+	// Sequences are 1-indexed in the kernel (a[1..N])
+	rand_seq(a + 1, N);
+	rand_seq(b + 1, N);
 
 	metrics_start_timer;
 
@@ -55,7 +59,8 @@ int main(int argc, char *argv[]) {
 			m2[i][j] = INT_MIN;
 			for (k = 1; k <= j; k++)
 				m2[i][j] = MAX(m2[i][j], F[i][j - k] - W[k]);
-			F[i][j] = MAX(0, MAX(F[i - 1][j - 1] + s(a[i], b[i]), MAX(m1[i][j], m2[i][j])));
+			// Unlike Smith-Waterman (sw), no clamp to 0: global alignment
+			F[i][j] = MAX(F[i - 1][j - 1] + s(a[i], b[j]), MAX(m1[i][j], m2[i][j]));
 		}
 #pragma endscop
 

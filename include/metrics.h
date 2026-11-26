@@ -17,10 +17,6 @@
 #define metrics_print_timer _metrics_timer_print();
 #endif // METRICS_TIME
 
-#ifndef RSEED
-#define RSEED time(NULL)
-#endif
-
 double metric_t_start, metric_t_end;
 
 double rtclock() {

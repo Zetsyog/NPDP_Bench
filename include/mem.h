@@ -36,13 +36,15 @@
 #define _bench_int_type int
 #endif
 
-int **mem() {
+// All allocators zero-initialize memory so that kernels never read
+// uninitialized values (results must be deterministic for checksums).
+_bench_int_type **mem() {
 	int i;
-	int **S;
-	S = malloc(DIM * sizeof(int *));
+	_bench_int_type **S;
+	S = malloc(DIM * sizeof(_bench_int_type *));
 
 	for (i = 0; i < DIM; i++) {
-		S[i] = malloc(DIM * sizeof(int));
+		S[i] = calloc(DIM, sizeof(_bench_int_type));
 	}
 
 	return S;
@@ -53,7 +55,7 @@ _bench_fp_type **memd() {
 	_bench_fp_type **S = malloc(DIM * sizeof(_bench_fp_type *));
 
 	for (i = 0; i < DIM; i++) {
-		S[i] = malloc(DIM * sizeof(_bench_fp_type));
+		S[i] = calloc(DIM, sizeof(_bench_fp_type));
 	}
 
 	return S;
@@ -119,7 +121,7 @@ void rna_array_print(FILE *fp, _bench_fp_type **S) {
 			if (i > j) {
 				fprintf(fp, "       ");
 			} else {
-				fprintf(fp, " %5.3f ", S[i][j]);
+				fprintf(fp, " %5.3f ", (double)S[i][j]);
 			}
 		}
 		fprintf(fp, "\n");
@@ -132,7 +134,7 @@ void array_print(FILE *fp, _bench_int_type **S) {
 
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++) {
-			fprintf(fp, " %d ", S[i][j]);
+			fprintf(fp, " %lld ", (long long)S[i][j]);
 		}
 		fprintf(fp, "\n");
 	}
@@ -144,7 +146,7 @@ void darray_print(FILE *fp, _bench_fp_type **S) {
 
 	for (i = 0; i < N; i++) {
 		for (j = 0; j < N; j++) {
-			fprintf(fp, " %.5f ", S[i][j]);
+			fprintf(fp, " %.5f ", (double)S[i][j]);
 		}
 		fprintf(fp, "\n");
 	}
@@ -174,7 +176,7 @@ int ***mem3d() {
 	}
 	for (i = 0; i < DIM; i++) {
 		for (j = 0; j < DIM; j++) {
-			S[i][j] = malloc(DIM * sizeof(int));
+			S[i][j] = calloc(DIM, sizeof(int));
 		}
 	}
 	return S;

@@ -6,3 +6,22 @@
 
 # IDE & text editor
 .vscode/
+
+# build outputs
+counting/counting
+counting_im/counting_im
+knuth/knuth
+mcc/mcc
+mcm/mcm
+mea/mea
+nussinov/nussinov
+nw/nw
+sw/sw
+sw3d/sw3d
+triang/triang
+zuker/zuker
+*_pluto
+*.out
+tile.sizes
+__temp_dump
+____*.tmp

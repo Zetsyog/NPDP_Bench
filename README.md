@@ -27,8 +27,24 @@ gcc -o prog prog.c -O3 -fopenmp -DMACRO1 -DMACRO2=423
 
 - `METRICS_TIME` if defined, the program will measure the time spent in the main computation kernel. Unset by default
 - `N` usually the size of the dataset. Default is 8
-- `RSEED` seed used for random number generation. Default is `time(NULL)`
+- `RSEED` seed used for random number generation. Default is `time(NULL)` (`get_chksum.sh` uses 42 when not given)
 - `RESULT_DUMP` if defined, the program will dump the result of its computation in stderr. Unset by default
+
+The default `N` is only meant for quick correctness checks. For benchmarking use sizes in the thousands for the 2D kernels (a few hundred for `zuker`, `mea` and `sw3d`, which are O(N^4)).
+
+Compile with `-ffp-contract=off` (default in `common.mk`): FMA contraction otherwise changes floating-point results of `mcc` and `mea` depending on loop structure, and original vs pluto checksums will not match.
+
+## Differences from the original NPDP Bench
+
+These kernels come from [NPDP_Bench](https://github.com/markpal/NPDP_Bench) (`input/`). The following bugs of the original codes were fixed:
+
+- All arrays are zero-initialized (several originals read uninitialized memory: `nussinov` RNA, `triang` points, `sw3d` borders).
+- `sw3d`: all three border faces of `H` are initialized, not only the edges.
+- `sw`, `nw`, `sw3d`: sequences are stored at indices `1..N` to match the 1-indexed kernels; `sw`/`nw` score `s(a[i], b[j])` instead of `s(a[i], b[i])`; `sw` subtracts the gap penalty (`- W[k]`) instead of adding it.
+- `nw` is a real Needleman-Wunsch global alignment (no clamp to 0, borders initialized to `-W[i]`); in the original it was a copy of `sw`.
+- `mea`: the out-of-bounds read `M[0][-1]` (when `i = k = 0`) is replaced by 0.
+- `counting`, `counting_im`: use `unsigned int`, since values grow exponentially and signed overflow is undefined behavior.
+- `counting` uses the recurrence `c[i][j] += paired(k,j) ? c[i][k-1] + c[k+1][j-1] : 0`. The original had an operator precedence bug; `counting_im` is the corrected version (with the extra `c[i][j-1]` term).
 
 ## Useful tools
 
@@ -43,15 +59,18 @@ Usage:
  ./get_chksum.sh [extra_flags] <target>
 ```
 
+Only the checksum is printed on stdout (build logs go to stderr), so results can be compared directly:
+
+```bash
+[ "$(../tools/get_chksum.sh "-DN=500" counting)" = "$(../tools/get_chksum.sh "-DN=500" counting_pluto)" ] && echo OK
+```
+
 Example:
 
 ```bash
 # inside a benchmark directory like ./counting
-../tools/get_chksum.sh "-DMETRICS_TIME -DN=200 -DRSEED=21" counting
-# Output
-rm -f counting counting_pluto  *.pluto.c *.cloog
-gcc -march=native -O3 -fopenmp -o counting counting.c -lm -I ../include/ -DMETRICS_TIME -DN=200 -DRSEED=46526 -DRESULT_DUMP
-0.002771
-rm -f counting counting_pluto  *.pluto.c *.cloog
-3181108660df2912a9866661ab3d81dad9fa72da1ce087e545d5cae309bd57fa
+../tools/get_chksum.sh "-DN=200 -DRSEED=21" counting
+# Output (make output on stderr, checksum on stdout)
+gcc -march=native -O3 -fopenmp -ffp-contract=off -I ../include/ -o counting counting.c -lm -DN=200 -DRSEED=21 -DRESULT_DUMP
+<sha256 of the dumped result>
 ```

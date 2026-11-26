@@ -11,8 +11,11 @@ compute_mean_exec_time() {
     # sort the result file
     sort -n $1 >$1.sorted
 
-    local first_line="$(expr $total_runs / 2 - $median_runs / 2)"
-    local last_line="$(expr $total_runs / 2 + $median_runs / 2)"
+    local first_line=$((total_runs / 2 - median_runs / 2))
+    local last_line=$((total_runs / 2 + median_runs / 2))
+    # sed line numbers start at 1
+    if ((first_line < 1)); then first_line=1; fi
+    if ((last_line > total_runs)); then last_line=$total_runs; fi
 
     # extract the selected lines
     sed -n "${first_line},${last_line}p" "$1.sorted" >"$1.median"
@@ -27,6 +30,7 @@ compute_mean_exec_time() {
     if ! awk "BEGIN{ exit ($stddev > $treshold) }"; then
         log "Standard deviation is too high: ${stddev} > ${treshold}"
         log "Aborting experiment"
+        rm -f "$1.sorted" "$1.median"
         return 1
     fi
 
@@ -116,7 +120,6 @@ reset_config() {
     unset CC
     unset DRYRUN
     unset OVERRIDE_RESULTS
-    unset POLYBENCH_DIR
 
     unset NB_MEDIAN_RUNS
     unset NB_RUNS
@@ -138,7 +141,7 @@ print_config() {
     echo -e "\tPOLYCC=$POLYCC"
     echo -e "\tPLUTO_EXTRA_FLAGS=$PLUTO_EXTRA_FLAGS"
 
-    echo -e "# Polybench configration"
+    echo -e "# Benchmark configuration"
     echo -e "DATASET_SIZE=$DATASET_SIZE"
     echo -e "THREAD_NB_LIST=$THREAD_NB_LIST"
     echo -e "TILESIZE_LVL_1=$TILESIZE_LVL_1"
@@ -154,7 +157,6 @@ print_config() {
     echo -e "GEN_OMP_SCHEDULES=$GEN_OMP_SCHEDULES"
     echo -e "DRYRUN=$DRYRUN"
     echo -e "OVERRIDE_RESULTS=$OVERRIDE_RESULTS"
-    echo -e "POLYBENCH_DIR=$POLYBENCH_DIR"
 
     echo -e "# Experiment parameters"
     echo -e "NB_MEDIAN_RUNS=$NB_MEDIAN_RUNS"

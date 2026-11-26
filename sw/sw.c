@@ -10,11 +10,11 @@ int **m1;
 int **m2;
 
 int *W;
-unsigned char *a;
-unsigned char *b;
+char *a;
+char *b;
 
 // Similarity score of the elements that constituted the two sequences
-int s(unsigned char x, unsigned char z) { return (x == z) ? 1 : -1; }
+int s(char x, char z) { return (x == z) ? 1 : -1; }
 
 int main(int argc, char *argv[]) {
 	srand(RSEED);
@@ -40,8 +40,9 @@ int main(int argc, char *argv[]) {
 	for (i = 1; i <= N; i++)
 		W[i] = i * W[0];
 
-	rand_seq(a, N);
-	rand_seq(b, N);
+	// Sequences are 1-indexed in the kernel (a[1..N])
+	rand_seq(a + 1, N);
+	rand_seq(b + 1, N);
 
 	metrics_start_timer;
 
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
 			m2[i][j] = INT_MIN;
 			for (k = 1; k <= j; k++)
 				m2[i][j] = MAX(m2[i][j], H[i][j - k] - W[k]);
-			H[i][j] = MAX(0, MAX(H[i - 1][j - 1] + s(a[i], b[i]), MAX(m1[i][j], m2[i][j])));
+			H[i][j] = MAX(0, MAX(H[i - 1][j - 1] + s(a[i], b[j]), MAX(m1[i][j], m2[i][j])));
 		}
 #pragma endscop
 
